@@ -25,6 +25,11 @@ local CLASS_COLORS = {
     ["DRUID"] = {r = 1.00, g = 0.49, b = 0.04},
 }
 
+-- Roll点捕获相关变量
+local isRollCapturing = false
+local rollResults = {}
+local rollCaptureFrame = nil  -- 用于监听roll事件的frame
+
 -- ============================================================================
 -- 数据库函数
 -- ============================================================================
@@ -208,8 +213,211 @@ end
 function RLC:OnAutoAnnounceClick(checkbox)
     if checkbox:GetChecked() then
         RaidLootCounterDB.autoAnnounce = true
+        print("|cff00ff00[RaidLootCounter]|r 自动通报: |cff00ff00已开启|r")
     else
         RaidLootCounterDB.autoAnnounce = false
+        print("|cff00ff00[RaidLootCounter]|r 自动通报: |cffff0000已关闭|r")
+    end
+end
+
+function RLC:OnStartRollCaptureClick()
+    if isRollCapturing then
+        print("|cffff0000[RaidLootCounter]|r " .. L["ROLL_CAPTURE_ALREADY_ACTIVE"])
+        return
+    end
+    
+    -- 清空之前的roll结果
+    rollResults = {}
+    isRollCapturing = true
+    
+    -- 创建或重用聊天事件监听器
+    if not rollCaptureFrame then
+        rollCaptureFrame = CreateFrame("Frame")
+    end
+    rollCaptureFrame:RegisterEvent("CHAT_MSG_SYSTEM")
+    rollCaptureFrame:SetScript("OnEvent", function(self, event, message)
+        if event == "CHAT_MSG_SYSTEM" and isRollCapturing then
+            RLC:ProcessRollMessage(message)
+        end
+    end)
+    
+    print("|cff00ff00[RaidLootCounter]|r " .. L["ROLL_CAPTURE_STARTED"])
+end
+
+function RLC:OnStopRollCaptureClick()
+    if not isRollCapturing then
+        print("|cffff0000[RaidLootCounter]|r " .. L["ROLL_CAPTURE_NOT_ACTIVE"])
+        return
+    end
+    
+    isRollCapturing = false
+    
+    -- 停止监听事件
+    if rollCaptureFrame then
+        rollCaptureFrame:UnregisterEvent("CHAT_MSG_SYSTEM")
+    end
+    
+    -- 显示roll结果
+    RLC:DisplayRollResults()
+    
+    print("|cff00ff00[RaidLootCounter]|r " .. L["ROLL_CAPTURE_STOPPED"])
+end
+
+-- ============================================================================
+-- Roll点捕获功能
+-- ============================================================================
+
+-- 处理roll点消息
+function RLC:ProcessRollMessage(message)
+    -- 使用本地化的roll点消息格式
+    local pattern = L["ROLL_PATTERN"] or "(.+) rolls (%d+) %((%d+)-(%d+)%)"
+
+    local playerName, rollValue, minValue, maxValue = string.match(message, pattern)
+
+    if playerName and rollValue and minValue and maxValue then
+        -- 清理玩家名字（去除首尾空格）
+        playerName = string.match(playerName, "^%s*(.-)%s*$")
+        
+        -- 检查是否在团队中
+        local numRaidMembers = GetNumRaidMembers()
+        local isRaidMember = false
+        
+        -- 1. 检查团队
+        if numRaidMembers > 0 then
+            for i = 1, numRaidMembers do
+                local raidName = GetRaidRosterInfo(i)
+                if raidName then
+                    local cleanRaidName = string.match(raidName, "^([^-]+)")
+                    if cleanRaidName == playerName or raidName == playerName then
+                        isRaidMember = true
+                        break
+                    end
+                end
+            end
+        else
+            -- 2. 检查小队 (方便测试)
+            local numPartyMembers = GetNumPartyMembers()
+            if numPartyMembers > 0 then
+                -- 检查自己
+                local myName = UnitName("player")
+                if myName == playerName then
+                    isRaidMember = true
+                else
+                    -- 检查队友
+                    for i = 1, numPartyMembers do
+                        local partyName = UnitName("party"..i)
+                        if partyName == playerName then
+                            isRaidMember = true
+                            break
+                        end
+                    end
+                end
+            else
+                -- 3. 单人测试 (允许自己roll)
+                local myName = UnitName("player")
+                if myName == playerName then
+                    isRaidMember = true
+                end
+            end
+        end
+        
+        if isRaidMember then
+            -- 检查是否已经roll过
+            local hasRolled = false
+            for _, result in ipairs(rollResults) do
+                if result.player == playerName then
+                    hasRolled = true
+                    break
+                end
+            end
+
+            if not hasRolled then
+                -- 存储roll结果
+                table.insert(rollResults, {
+                    player = playerName,
+                    roll = tonumber(rollValue),
+                    min = tonumber(minValue),
+                    max = tonumber(maxValue),
+                    timestamp = time()
+                })
+                -- 调试信息：显示捕获的roll点
+                print(string.format("|cff00ff00[RaidLootCounter]|r 捕获: %s 掷出 %s (%s-%s)", 
+                    playerName, rollValue, minValue, maxValue))
+            end
+        else
+            -- 调试：不在团队中
+             -- print(string.format("|cffff0000[RaidLootCounter]|r 忽略 %s (不在团队)", playerName))
+        end
+    end
+end
+
+-- 显示roll结果
+function RLC:DisplayRollResults()
+    if #rollResults == 0 then
+        print("|cffff0000[RaidLootCounter]|r " .. L["ROLL_NO_RESULTS"])
+        return
+    end
+    
+    -- 预处理：获取每个人的拾取数量，避免在sort中频繁查表
+    for _, result in ipairs(rollResults) do
+        local dbData = RaidLootCounterDB[result.player]
+        result.lootCount = (dbData and dbData.count) or 0
+    end
+
+    -- 排序规则：
+    -- 1. 拾取数量少的优先 (升序)
+    -- 2. 拾取数量相同时，Roll点高的优先 (降序)
+    table.sort(rollResults, function(a, b)
+        if a.lootCount ~= b.lootCount then
+            return a.lootCount < b.lootCount
+        end
+        return a.roll > b.roll
+    end)
+    
+    -- 辅助函数：发送通报（团队中使用RW，否则使用Print）
+    local function Announce(msg)
+        if GetNumRaidMembers() > 0 then
+            SendChatMessage(msg, "RAID_WARNING")
+        else
+            print(msg)
+        end
+    end
+
+    Announce("=== Roll Results Start === (" .. #rollResults .. " rolls)")
+    
+    for i, result in ipairs(rollResults) do
+        -- 显示格式：排名. 玩家: Roll点 (范围) [已拾取: N]
+        -- 注意：RW消息不支持复杂的颜色代码（虽然能发，但显示效果由客户端决定，通常是居中大红字/橙字）
+        -- 这里我们去掉颜色代码，直接发送纯文本，或者保留简单的格式
+        local msg = string.format("%d. %s: %d (%d-%d) [Looted: %d]", 
+            i, result.player, result.roll, result.min, result.max, result.lootCount)
+        Announce(msg)
+    end
+    
+    -- 显示获胜者
+    if #rollResults > 0 then
+        local winners = {}
+        local first = rollResults[1]
+        
+        -- 格式化函数: {玩家姓名} ({roll结果} ({最小值}-{最大值}) Looted: {拾取次数})
+        local function GetWinnerString(res)
+            return string.format("%s (%d (%d-%d) Looted: %d)", res.player, res.roll, res.min, res.max, res.lootCount)
+        end
+        
+        table.insert(winners, GetWinnerString(first))
+        
+        -- 检查并列第一 (检查是否有相同LootCount和Roll值的玩家)
+        for i = 2, #rollResults do
+            local current = rollResults[i]
+            if current.roll == first.roll and current.lootCount == first.lootCount then
+                table.insert(winners, GetWinnerString(current))
+            else
+                break -- 列表已排序，后续的不可能是并列第一
+            end
+        end
+        
+        local winnerText = table.concat(winners, ", ")
+        Announce("Winner: " .. winnerText)
     end
 end
 
@@ -470,7 +678,7 @@ function RLC:SendLootUpdate(playerName, newCount, isAdd)
         return  -- 不在团队中，静默不发送
     end
     
-    -- 格式：{人名} - {Add/Remove} {更新的数量} - {更新后数量}
+    -- 格式：{人名} - {Add/Remove} {更新的数量} - 总数: {更新后数量}
     local action = isAdd and L["OUTPUT_ADD"] or L["OUTPUT_REMOVE"]
     local changeAmount = 1
     local msg = playerName .. " - " .. action .. " " .. changeAmount .. " - " .. L["OUTPUT_TOTAL"] .. " " .. newCount
@@ -499,6 +707,12 @@ local function InitUI()
     end
     if RaidLootCounterFrameAutoAnnounceCheckbox then
         RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce)
+    end
+    if RaidLootCounterFrameStartRollCaptureButton then
+        RaidLootCounterFrameStartRollCaptureButton:SetText(L["START_ROLL_CAPTURE"])
+    end
+    if RaidLootCounterFrameStopRollCaptureButton then
+        RaidLootCounterFrameStopRollCaptureButton:SetText(L["STOP_ROLL_CAPTURE"])
     end
 end
 

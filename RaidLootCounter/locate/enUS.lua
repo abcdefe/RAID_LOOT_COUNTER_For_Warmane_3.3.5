@@ -26,6 +26,19 @@ local enUS = {
     
     ["CHECKBOX_AUTO_ANNOUNCE"] = "Update immediately notify raid",
 
+    ["START_ROLL_CAPTURE"] = "Start Roll Capture",
+    ["STOP_ROLL_CAPTURE"] = "Stop Roll Capture",
+
+    ["ROLL_CAPTURE_STARTED"] = "Roll capture started. Listening for raid rolls...",
+    ["ROLL_CAPTURE_STOPPED"] = "Roll capture stopped.",
+    ["ROLL_CAPTURE_ALREADY_ACTIVE"] = "Roll capture is already active.",
+    ["ROLL_CAPTURE_NOT_ACTIVE"] = "Roll capture is not active.",
+    ["ROLL_NO_RESULTS"] = "No roll results captured.",
+    ["ROLL_RESULTS_HEADER"] = "=== Roll Results ===",
+    ["ROLL_RESULTS_COUNT"] = "rolls",
+    ["ROLL_WINNER"] = "Winner",
+    ["ROLL_PATTERN"] = "(.+)%s+rolls%s+(%d+)[^%d]+(%d+)[^%d]+(%d+)",
+
     ["CONFIRM_CLEAR_TEXT"] = "Are you sure you want to clear all data?\n\nThis will delete all members and their loot records!",
     ["CONFIRM"] = "Confirm",
     ["CANCEL"] = "Cancel",

@@ -133,9 +133,37 @@
                 </Scripts>
             </Button>
 
-            <CheckButton name="$parentAutoAnnounceCheckbox" inherits="OptionsCheckButtonTemplate">
+            <Button name="$parentStartRollCaptureButton" inherits="GameMenuButtonTemplate" text="开启roll捕获">
+                <Size x="120" y="25"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="$parentSyncButton" relativePoint="BOTTOMLEFT" x="0" y="-5"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnStartRollCaptureClick then
+                            RLC:OnStartRollCaptureClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <Button name="$parentStopRollCaptureButton" inherits="GameMenuButtonTemplate" text="停止roll捕获">
+                <Size x="120" y="25"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentStartRollCaptureButton" relativePoint="TOPRIGHT" x="10" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnStopRollCaptureClick then
+                            RLC:OnStopRollCaptureClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <CheckButton name="$parentAutoAnnounceCheckbox" inherits="OptionsCheckButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentStopRollCaptureButton" relativePoint="TOPRIGHT" x="10" y="0"/>
                 </Anchors>
                 <Scripts>
                     <OnClick>

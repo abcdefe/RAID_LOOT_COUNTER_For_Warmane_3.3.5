@@ -23,6 +23,25 @@ local zhCN = {
     
     ["CHECKBOX_AUTO_ANNOUNCE"] = "更新数量后立刻团队通知",
 
+    ["START_ROLL_CAPTURE"] = "开启roll捕获",
+    ["STOP_ROLL_CAPTURE"] = "停止roll捕获",
+
+    ["ROLL_CAPTURE_STARTED"] = "已开启roll捕获，正在监听团队roll点...",
+    ["ROLL_CAPTURE_STOPPED"] = "已停止roll捕获。",
+    ["ROLL_CAPTURE_ALREADY_ACTIVE"] = "roll捕获已在进行中。",
+    ["ROLL_CAPTURE_NOT_ACTIVE"] = "roll捕获未开启。",
+    ["ROLL_NO_RESULTS"] = "没有捕获到roll结果。",
+    ["ROLL_RESULTS_HEADER"] = "=== Roll点结果 ===",
+    ["ROLL_RESULTS_COUNT"] = "个roll点",
+    ["ROLL_WINNER"] = "获胜者",
+    ["ROLL_PATTERN"] = "(.+)掷出(%d+)[^%d]+(%d+)[^%d]+(%d+)",
+
+    ["OUTPUT_ADD"] = "新增",
+    ["OUTPUT_REMOVE"] = "移除",
+    ["OUTPUT_TOTAL"] = "总数:",
+    ["OUTPUT_HEADER"] = "团队拾取统计:",
+    ["OUTPUT_ITEMS"] = "件物品",
+
     ["CONFIRM_CLEAR_TEXT"] = "确定要清空所有数据吗？\n\n这将删除所有成员和他们的拾取记录！",
     ["CONFIRM"] = "确定",
     ["CANCEL"] = "取消",

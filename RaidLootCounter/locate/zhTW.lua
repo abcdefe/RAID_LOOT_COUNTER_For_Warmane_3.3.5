@@ -23,6 +23,25 @@ local zhTW = {
     
     ["CHECKBOX_AUTO_ANNOUNCE"] = "更新數量後立刻團隊通知",
 
+    ["START_ROLL_CAPTURE"] = "開啟roll捕獲",
+    ["STOP_ROLL_CAPTURE"] = "停止roll捕獲",
+
+    ["ROLL_CAPTURE_STARTED"] = "已開啟roll捕獲，正在監聽團隊roll點...",
+    ["ROLL_CAPTURE_STOPPED"] = "已停止roll捕獲。",
+    ["ROLL_CAPTURE_ALREADY_ACTIVE"] = "roll捕獲已在進行中。",
+    ["ROLL_CAPTURE_NOT_ACTIVE"] = "roll捕獲未開啟。",
+    ["ROLL_NO_RESULTS"] = "沒有捕獲到roll結果。",
+    ["ROLL_RESULTS_HEADER"] = "=== Roll點結果 ===",
+    ["ROLL_RESULTS_COUNT"] = "個roll點",
+    ["ROLL_WINNER"] = "獲勝者",
+    ["ROLL_PATTERN"] = "(.+)擲出(%d+)[^%d]+(%d+)[^%d]+(%d+)",
+
+    ["OUTPUT_ADD"] = "新增",
+    ["OUTPUT_REMOVE"] = "移除",
+    ["OUTPUT_TOTAL"] = "總數:",
+    ["OUTPUT_HEADER"] = "團隊拾取統計:",
+    ["OUTPUT_ITEMS"] = "件物品",
+
     ["CONFIRM_CLEAR_TEXT"] = "確定要清空所有數據嗎？\n\n這將刪除所有成員和他們的拾取記錄！",
     ["CONFIRM"] = "確定",
     ["CANCEL"] = "取消",
