@@ -1,0 +1,13 @@
+## Interface: 30300
+## Title: Raid Loot Counter
+## Notes: 记录团队队员拾取装备数量
+## Author: YourName
+## Version: 1.0
+## SavedVariables: RaidLootCounterDB
+
+locate\Localization.lua
+locate\enUS.lua
+locate\zhCN.lua
+locate\zhTW.lua
+RaidLootCounter.xml
+RaidLootCounter.lua
