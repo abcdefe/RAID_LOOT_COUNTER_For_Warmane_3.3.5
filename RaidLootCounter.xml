@@ -1,0 +1,173 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+
+    <!-- Class Header Template -->
+    <Frame name="RLC_ClassHeaderTemplate" virtual="true">
+        <Size x="200" y="20"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentText" inherits="GameFontNormalLarge" justifyH="LEFT" setAllPoints="true"/>
+            </Layer>
+        </Layers>
+    </Frame>
+
+    <!-- Player Row Template -->
+    <Frame name="RLC_PlayerRowTemplate" virtual="true">
+        <Size x="320" y="30"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentName" inherits="GameFontNormal" justifyH="LEFT">
+                    <Size x="150" y="20"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="5" y="0"/>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentCount" inherits="GameFontNormal" justifyH="LEFT" text="Looted: 0">
+                    <Size x="80" y="20"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="160" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button name="$parentMinusBtn" inherits="GameMenuButtonTemplate" text="-">
+                <Size x="30" y="25"/>
+                <Anchors>
+                    <Anchor point="LEFT" x="240" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnMinusClick then
+                            RLC:OnMinusClick(self:GetParent())
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+            <Button name="$parentPlusBtn" inherits="GameMenuButtonTemplate" text="+">
+                <Size x="30" y="25"/>
+                <Anchors>
+                    <Anchor point="LEFT" relativeTo="$parentMinusBtn" relativePoint="RIGHT" x="5" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnPlusClick then
+                            RLC:OnPlusClick(self:GetParent())
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+        </Frames>
+    </Frame>
+
+    <!-- Main Frame -->
+    <Frame name="RaidLootCounterFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent">
+        <Size x="800" y="600"/>
+        <Anchors>
+            <Anchor point="CENTER"/>
+        </Anchors>
+        <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+            <BackgroundInsets>
+                <AbsInset left="11" right="12" top="12" bottom="11"/>
+            </BackgroundInsets>
+            <TileSize>
+                <AbsValue val="32"/>
+            </TileSize>
+            <EdgeSize>
+                <AbsValue val="32"/>
+            </EdgeSize>
+        </Backdrop>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Raid Loot Counter">
+                    <Anchors>
+                        <Anchor point="TOP" x="0" y="-20"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-5" y="-5"/>
+                </Anchors>
+            </Button>
+            
+            <Button name="$parentSyncButton" inherits="GameMenuButtonTemplate" text="Sync Raid">
+                <Size x="100" y="25"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="20" y="-50"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnSyncClick then
+                            RLC:OnSyncClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+            
+            <Button name="$parentClearButton" inherits="GameMenuButtonTemplate" text="Clear Data">
+                <Size x="100" y="25"/>
+                <Anchors>
+                    <Anchor point="LEFT" relativeTo="$parentSyncButton" relativePoint="RIGHT" x="10" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        StaticPopup_Show("RLC_CLEAR_CONFIRM")
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <Button name="$parentSendButton" inherits="GameMenuButtonTemplate" text="Send Stats">
+                <Size x="120" y="25"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-40" y="-50"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.SendToRaid then
+                            RLC:SendToRaid()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <CheckButton name="$parentAutoAnnounceCheckbox" inherits="OptionsCheckButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentSyncButton" relativePoint="BOTTOMLEFT" x="0" y="-5"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnAutoAnnounceClick then
+                            RLC:OnAutoAnnounceClick(self)
+                        end
+                    </OnClick>
+                </Scripts>
+            </CheckButton>
+
+            <ScrollFrame name="RLCScrollFrame" inherits="UIPanelScrollFrameTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="20" y="-120"/>
+                    <Anchor point="BOTTOMRIGHT" x="-40" y="20"/>
+                </Anchors>
+                <ScrollChild>
+                    <Frame name="RLCScrollChild">
+                        <Size x="740" y="1"/>
+                    </Frame>
+                </ScrollChild>
+            </ScrollFrame>
+        </Frames>
+        <Scripts>
+            <OnLoad>
+                self:RegisterForDrag("LeftButton");
+            </OnLoad>
+            <OnDragStart>
+                self:StartMoving();
+            </OnDragStart>
+            <OnDragStop>
+                self:StopMovingOrSizing();
+            </OnDragStop>
+        </Scripts>
+    </Frame>
+</Ui>
