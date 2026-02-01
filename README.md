@@ -1,119 +1,43 @@
-# 团队拾取计数器插件 (RaidLootCounter)
+# Raid Loot Counter (WoW 3.3.5a)
 
-## 插件信息
-- **版本**: 1.0
-- **适用版本**: 魔兽世界 3.3.5a (接口版本 30300)
-- **功能**: 记录团队成员拾取装备数量
+A simple, robust addon for tracking loot distribution in raids. Designed for Warmane (WotLK 3.3.5a).
 
-## 安装方法
-1. 将 `RaidLootCounter` 文件夹放入魔兽世界插件目录
-2. 完整路径示例: `World of Warcraft\Interface\AddOns\RaidLootCounter\`
-3. 重启游戏或在角色选择界面重载UI
+## Features
 
-## 使用方法
+- **Raid Member Sync**: Automatically populates the list from the current raid roster, grouped by class.
+- **Loot Tracking**: +/- buttons to track items received per player.
+- **Auto Announce**: (Optional) Automatically sends a Raid Warning whenever a player receives an item.
+    - Format: `{Name} - 新增 1 - 总数: {Total}`
+- **Roll Capture**: Captures `/roll` results from chat, sorts them by value, and identifies the winner. Supports both English and Chinese clients.
+- **Double Column UI**: Efficient use of screen space for 25-man raids.
+- **Persistence**: Data is saved between sessions.
+- **Localization**: Supports enUS, zhCN (Simplified Chinese), and zhTW (Traditional Chinese).
 
-### 打开插件界面
-在游戏中输入命令:
-```
-/rlc
-```
+## Usage
 
-### 主要功能
+1. **Open Window**: Type `/rlc` or `/raidlootcounter`.
+2. **Sync**: Click "Sync Raid" to load current raid members.
+3. **Track**: Click `+` when a player wins an item.
+    - If "Auto Announce" is checked, a raid warning is sent instantly.
+4. **Rolls**: 
+    - Click "Start Roll Capture" before asking for rolls.
+    - Click "Stop Roll Capture" after rolls are done. The winner and all rolls will be printed to your chat window.
+5. **Report**: Click "Send Stats" to broadcast the full loot table to Raid Warning channel at the end of the raid.
 
-#### 1. 同步团队
-- 点击"同步团队"按钮
-- 自动获取当前团队所有成员
-- 保留已有成员的拾取记录
+## Installation
 
-#### 2. 新增成员
-- 点击"新增成员"按钮
-- 在弹出框中输入玩家名称
-- 手动添加不在团队中的玩家
+1. Download and extract to `Interface/AddOns/RaidLootCounter`.
+2. Ensure the folder structure is correct (`Interface/AddOns/RaidLootCounter/RaidLootCounter.toc` exists).
+3. Enable in character selection screen.
 
-#### 3. 清空数据
-- 点击"清空数据"按钮
-- 弹出确认对话框
-- 确认后清空所有拾取记录
+## Localization Note
 
-#### 4. 发送统计
-- 点击"发送统计"按钮
-- 将当前拾取统计以RW（团队警告）方式发送到团队聊天
-- 数据按职业分组显示（使用英文职业名）
-- 每个职业内的成员按拾取数量从高到低排序
-- 需要在团队中才能使用此功能
-- 发送格式示例：
-```
-========== Raid Loot Counter ==========
-[WARRIOR]
-玩家A: 5 items
-玩家B: 3 items
-[MAGE]
-玩家C: 4 items
-=======================================
-```
+This addon is optimized for players using Chinese clients (zhCN) on English servers (like Warmane).
+- **UI**: Localized to your client language.
+- **Chat Capture**: Supports both "Name rolls..." (English) and "Name掷出..." (Chinese) formats.
+- **Broadcasts**: Uses bilingual or clear formats suitable for international groups.
 
-#### 5. 记录拾取
-- 每个成员右侧有 "+" 和 "-" 按钮
-- 点击 "+" 增加拾取数量
-- 点击 "-" 减少拾取数量
-- 数量不会低于 0
+## Troubleshooting
 
-## 特色功能
-
-### 职业分组显示
-- 自动按职业对成员进行分组
-- 职业名称使用中文显示
-- 职业标题和成员名称使用对应职业颜色:
-  - 战士 (棕色)
-  - 圣骑士 (粉色)
-  - 猎人 (绿色)
-  - 潜行者 (黄色)
-  - 牧师 (白色)
-  - 死亡骑士 (红色)
-  - 萨满祭司 (蓝色)
-  - 法师 (浅蓝色)
-  - 术士 (紫色)
-  - 德鲁伊 (橙色)
-
-### 数据持久化
-- 所有拾取记录自动保存
-- 退出游戏后数据不丢失
-- 下次进入游戏数据自动加载
-- 除非手动清空，否则数据永久保存
-
-### 界面特性
-- 可拖动窗口位置
-- 滚动显示大量成员
-- 清晰的视觉层次
-- 易于操作的按钮布局
-
-## 注意事项
-
-1. **团队同步**: 需要在团队中才能使用"同步团队"功能
-2. **发送统计**: 使用"同步到团队"功能时，会以RW（团队警告）方式发送，需要团队权限
-3. **数据保存**: 数据存储在 `SavedVariables\RaidLootCounterDB.lua` 文件中
-4. **安全操作**: 清空数据前会弹出确认对话框，避免误操作
-
-## 常见问题
-
-**Q: 为什么同步团队没有反应？**
-A: 请确保你已经在一个团队中，而不是小队。
-
-**Q: 数据保存在哪里？**
-A: 数据保存在角色的 SavedVariables 文件中，路径为:
-`WTF\Account\你的账号\服务器名\角色名\SavedVariables\RaidLootCounterDB.lua`
-
-**Q: 如何备份数据？**
-A: 复制上述 SavedVariables 文件即可备份所有数据。
-
-**Q: 能否在小队中使用？**
-A: 当前版本仅支持团队模式。
-
-## 技术支持
-
-如有问题或建议，请联系插件作者。
-
----
-版本: 1.0
-作者: Bowen
-日期: 2026-02-01
+- **Regex Issues**: If roll capture fails, ensure you are using the latest version with updated regex patterns for Chinese clients.
+- **Checkbox Reset**: The "Auto Announce" setting is preserved across sessions and is NOT cleared when clicking "Clear Data".

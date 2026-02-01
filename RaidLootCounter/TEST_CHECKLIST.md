@@ -1,239 +1,64 @@
-# 团队拾取计数器 - 完整测试清单
+# Raid Loot Counter - Test Checklist
 
-## 📋 测试环境
-- 游戏版本：魔兽世界 3.3.5a
-- 接口版本：30300
-- 测试日期：2026-02-01
+Use this checklist to verify the functionality of the addon.
 
-## ✅ 功能测试清单
+## 1. Setup & Initialization
+- [ ] **Load Addon**: Launch WoW and ensure `RaidLootCounter` is enabled.
+- [ ] **Slash Command**: Type `/rlc`.
+    - [ ] Verify the window toggles open/closed.
+- [ ] **Initial State**:
+    - [ ] Window title is localized.
+    - [ ] "Update immediately..." checkbox defaults to checked.
 
-### 1. 插件加载测试
-- [ ] 插件正确加载
-- [ ] 聊天窗口显示加载消息
-- [ ] 数据库正确初始化
-- [ ] 命令 `/rlc` 可用
+## 2. Basic UI Layout
+- [ ] **Layout**: Window width ~800px.
+- [ ] **Double Column**:
+    - [ ] Join a raid. Click `Sync Raid`.
+    - [ ] Verify members are split into two columns.
+- [ ] **Object Pooling**:
+    - [ ] Spam `Sync Raid` multiple times.
+    - [ ] Verify no UI flickering or memory spikes.
 
-### 2. 界面显示测试
-- [ ] 使用 `/rlc` 打开界面
-- [ ] 窗口可以拖动
-- [ ] 关闭按钮正常工作
-- [ ] 所有按钮正确显示
-- [ ] 再次使用 `/rlc` 可关闭界面
+## 3. Data Management
+- [ ] **Sync Raid**:
+    - [ ] Add/Kick members from raid. Click `Sync`. Verify list updates correctly.
+- [ ] **Loot Tracking**:
+    - [ ] Click `+`/`-`. Verify count updates.
+- [ ] **Persistence Regression Test**:
+    - [ ] Set "Update immediately" checkbox to **OFF**.
+    - [ ] Click `Sync Raid`.
+    - [ ] Verify checkbox remains **OFF**.
+    - [ ] Click `Clear Data` -> `Confirm`.
+    - [ ] Verify checkbox remains **OFF**.
 
-### 3. 同步团队功能测试
-#### 场景1：不在团队时
-- [ ] 点击"同步团队"
-- [ ] 显示错误提示："你不在团队中，无法同步"
-- [ ] 界面保持当前状态
+## 4. Announcements
+- [ ] **Format Verification**:
+    - [ ] Enable "Update immediately".
+    - [ ] Click `+` on a player.
+    - [ ] **CRITICAL**: Verify message format is exactly:
+      `{Name} - Add 1 - Total: {N}` (English) or `{Name} - 新增 1 - 总数: {N}` (Chinese).
+- [ ] **Send Stats**:
+    - [ ] Click `Send Stats`. Verify full raid warning report.
 
-#### 场景2：首次同步（数据库为空）
-- [ ] 加入团队
-- [ ] 点击"同步团队"
-- [ ] 所有团队成员正确显示
-- [ ] 按职业正确分组
-- [ ] 职业颜色正确
-- [ ] 所有成员拾取数为0
-- [ ] 显示提示："已同步团队成员，新增 X 人"
+## 5. Roll Capture (New Feature)
+- [ ] **Start/Stop**:
+    - [ ] Click `Start Roll Capture`. Verify message "Roll capture started".
+    - [ ] Click `Stop Roll Capture`. Verify message "Roll capture stopped" and results list.
+- [ ] **Solo Testing**:
+    - [ ] Not in a party/raid.
+    - [ ] Type `/roll`.
+    - [ ] Verify console prints: "Captured: {You} rolls {N} (1-100)".
+- [ ] **Regex Robustness (Chinese)**:
+    - [ ] Verify capture of message: `Xtails掷出78（1-100）`.
+    - [ ] Verify capture of message: `Name 掷出 100 (1-100)`.
+- [ ] **Regex Robustness (English)**:
+    - [ ] Verify capture of message: `Name rolls 50 (1-100)`.
 
-#### 场景3：第二次同步（已有数据）
-- [ ] 修改部分成员的拾取数量
-- [ ] 点击"同步团队"
-- [ ] 已有成员的拾取数量保持不变
-- [ ] 显示提示："已同步团队成员"
-
-#### 场景4：同步新成员
-- [ ] 有新成员加入团队
-- [ ] 点击"同步团队"
-- [ ] 老成员拾取数量保持不变
-- [ ] 新成员初始化为0
-- [ ] 显示提示："已同步团队成员，新增 X 人"
-
-### 4. 新增成员功能测试
-#### 测试用例1：添加新成员
-- [ ] 点击"新增成员"
-- [ ] 弹出输入框
-- [ ] 输入玩家名称（如"测试玩家"）
-- [ ] 点击"确定"
-- [ ] 成员添加到列表
-- [ ] 职业颜色正确显示
-- [ ] 拾取数量为0
-- [ ] 显示提示："已添加成员: 测试玩家"
-
-#### 测试用例2：添加重复成员
-- [ ] 点击"新增成员"
-- [ ] 输入已存在的玩家名
-- [ ] 点击"确定"
-- [ ] 显示错误提示："成员已存在: XXX"
-- [ ] 列表无变化
-
-#### 测试用例3：空白输入
-- [ ] 点击"新增成员"
-- [ ] 不输入任何内容
-- [ ] 点击"确定"
-- [ ] 对话框关闭，无任何操作
-
-#### 测试用例4：取消操作
-- [ ] 点击"新增成员"
-- [ ] 输入任意内容
-- [ ] 点击"取消"或按ESC
-- [ ] 对话框关闭，无添加操作
-
-### 5. 拾取数量操作测试
-#### "+" 按钮测试
-- [ ] 点击某成员的"+"按钮
-- [ ] 数量正确增加1
-- [ ] 界面正确刷新显示
-- [ ] 列表不消失
-- [ ] 发送团队警告："{玩家名} - Add 1 - {新数量}"
-- [ ] 连续点击10次，数量正确累加
-
-#### "-" 按钮测试
-- [ ] 点击某成员的"-"按钮
-- [ ] 数量正确减少1
-- [ ] 界面正确刷新显示
-- [ ] 列表不消失
-- [ ] 发送团队警告："{玩家名} - Remove 1 - {新数量}"
-- [ ] 数量为0时，继续点击"-"，数量保持为0
-
-#### 多成员操作测试
-- [ ] 同时操作多个不同成员的+/-
-- [ ] 每个成员的数量独立正确变化
-- [ ] 界面稳定，无闪烁
-
-### 6. 清空数据功能测试
-#### 测试用例1：有数据时清空
-- [ ] 列表中有多个成员和数据
-- [ ] 点击"清空数据"
-- [ ] 弹出确认对话框："确定要清空所有数据吗？"
-- [ ] 点击"确定"
-- [ ] 所有成员消失
-- [ ] 所有职业标题消失
-- [ ] 界面完全空白
-- [ ] 显示提示："数据已清空"
-
-#### 测试用例2：清空后取消
-- [ ] 列表中有数据
-- [ ] 点击"清空数据"
-- [ ] 弹出确认对话框
-- [ ] 点击"取消"或按ESC
-- [ ] 数据保持不变
-
-#### 测试用例3：清空后重新添加
-- [ ] 清空所有数据
-- [ ] 使用"同步团队"或"新增成员"
-- [ ] 新成员正确添加
-- [ ] 界面正确显示
-
-### 7. 发送统计功能测试
-#### 测试用例1：不在团队时
-- [ ] 不在团队中
-- [ ] 点击"发送统计"
-- [ ] 显示错误提示："你不在团队中，无法发送"
-- [ ] 团队聊天无消息
-
-#### 测试用例2：无数据时
-- [ ] 在团队中但数据库为空
-- [ ] 点击"发送统计"
-- [ ] 显示错误提示："没有可发送的数据"
-- [ ] 团队聊天无消息
-
-#### 测试用例3：正常发送
-- [ ] 在团队中且有数据
-- [ ] 点击"发送统计"
-- [ ] 团队警告显示标题："========== Raid Loot Counter =========="
-- [ ] 按职业分组显示（如"[WARRIOR]"）
-- [ ] 每个职业内按拾取数量降序排列
-- [ ] 格式正确："{玩家名}: {数量} items"
-- [ ] 结束标记："======================================="
-- [ ] 显示提示："已发送统计数据到团队聊天"
-
-### 8. 数据持久化测试
-- [ ] 添加数据并修改拾取数量
-- [ ] 关闭游戏
-- [ ] 重新登录
-- [ ] 使用 `/rlc` 打开界面
-- [ ] 所有数据完整保留
-- [ ] 拾取数量正确
-
-### 9. 职业显示测试
-验证所有职业的颜色和名称：
-- [ ] 战士 WARRIOR - 棕色
-- [ ] 圣骑士 PALADIN - 粉色
-- [ ] 猎人 HUNTER - 绿色
-- [ ] 潜行者 ROGUE - 黄色
-- [ ] 牧师 PRIEST - 白色
-- [ ] 死亡骑士 DEATHKNIGHT - 红色
-- [ ] 萨满祭司 SHAMAN - 蓝色
-- [ ] 法师 MAGE - 浅蓝色
-- [ ] 术士 WARLOCK - 紫色
-- [ ] 德鲁伊 DRUID - 橙色
-
-### 10. 边界条件测试
-- [ ] 数据库有100+成员时，滚动条正常工作
-- [ ] 玩家名称包含特殊字符（如"-"）
-- [ ] 玩家名称很长（接近字符限制）
-- [ ] 快速连续点击+/-按钮
-- [ ] 同时打开多个对话框
-
-### 11. 异常处理测试
-- [ ] 团队解散后点击各功能
-- [ ] SavedVariables文件损坏后加载
-- [ ] 网络延迟时的操作
-- [ ] 在战斗中使用插件
-
-## 🔍 已知修复的问题
-
-### 问题1：点击"+"导致列表消失
-✅ 已修复
-- 原因：闭包变量问题
-- 解决：使用局部变量保存玩家名
-
-### 问题2：清空数据后职业标题残留
-✅ 已修复
-- 原因：FontString未正确清除
-- 解决：专门清除FontString对象
-
-### 问题3：数据库清空不彻底
-✅ 已修复
-- 原因：直接赋值空表无效
-- 解决：遍历删除所有键
-
-### 问题4：同步团队覆盖已有数据
-✅ 已修复
-- 原因：未检查数据是否存在
-- 解决：只更新新成员，保留旧数据
-
-## 📝 代码质量检查
-
-- [x] 所有函数都有错误检查
-- [x] 使用局部变量避免闭包问题
-- [x] 数据库操作前检查存在性
-- [x] 清除UI元素时彻底清理
-- [x] 用户操作有明确反馈
-- [x] 错误情况有友好提示
-- [x] 代码有清晰的注释
-- [x] 函数命名清晰易懂
-- [x] 常量统一定义在顶部
-
-## 🚀 性能优化
-
-- [x] 避免不必要的全局变量
-- [x] 使用局部变量缓存常用值
-- [x] 清除UI时批量处理
-- [x] 数据排序使用高效算法
-- [x] 避免重复创建对话框
-
-## 📊 测试结果
-
-测试日期：___________
-测试人员：___________
-
-通过项目：_____ / _____
-失败项目：_____ / _____
-
-整体评分：□ 优秀  □ 良好  □ 需改进
-
-备注：
-_________________________________
-_________________________________
-_________________________________
+## 6. Localization
+- [ ] **zhCN**:
+    - [ ] Verify UI is Chinese.
+    - [ ] Verify Roll Capture works with Chinese system messages.
+    - [ ] Verify Raid Warnings use Chinese prefixes (新增/移除/总数).
+- [ ] **enUS**:
+    - [ ] Verify UI is English.
+    - [ ] Verify Roll Capture works with English system messages.
