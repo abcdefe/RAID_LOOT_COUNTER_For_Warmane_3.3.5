@@ -6,7 +6,7 @@
 - **功能**: 记录团队成员拾取装备数量
 
 ## 安装方法
-1. 将 `RaidLootCounter.toc` 和 `RaidLootCounter.lua` 文件放入魔兽世界插件目录
+1. 将 `RaidLootCounter` 文件夹放入魔兽世界插件目录
 2. 完整路径示例: `World of Warcraft\Interface\AddOns\RaidLootCounter\`
 3. 重启游戏或在角色选择界面重载UI
 
