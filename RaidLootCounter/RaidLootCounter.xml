@@ -87,6 +87,15 @@
             </Layer>
         </Layers>
         <Frames>
+            <Frame name="$parentMask" hidden="true" enableMouse="true" setAllPoints="true" frameStrata="HIGH">
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture setAllPoints="true">
+                            <Color r="0" g="0" b="0" a="0.5"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
             <Button name="$parentCloseButton" inherits="UIPanelCloseButton">
                 <Anchors>
                     <Anchor point="TOPRIGHT" x="-5" y="-5"/>
@@ -128,6 +137,20 @@
                     <OnClick>
                         if RLC and RLC.SendToRaid then
                             RLC:SendToRaid()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <Button name="$parentViewLootButton" inherits="GameMenuButtonTemplate" text="View Loot">
+                <Size x="100" y="25"/>
+                <Anchors>
+                    <Anchor point="RIGHT" relativeTo="$parentSendButton" relativePoint="LEFT" x="-10" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnViewLootClick then
+                            RLC:OnViewLootClick()
                         end
                     </OnClick>
                 </Scripts>
@@ -182,6 +205,212 @@
                 <ScrollChild>
                     <Frame name="RLCScrollChild">
                         <Size x="740" y="1"/>
+                    </Frame>
+                </ScrollChild>
+            </ScrollFrame>
+        </Frames>
+        <Scripts>
+            <OnLoad>
+                self:RegisterForDrag("LeftButton");
+            </OnLoad>
+            <OnDragStart>
+                self:StartMoving();
+            </OnDragStart>
+            <OnDragStop>
+                self:StopMovingOrSizing();
+            </OnDragStop>
+        </Scripts>
+    </Frame>
+
+    <!-- Loot Selection Row Template -->
+    <Button name="RLC_LootSelectionRowTemplate" virtual="true">
+        <Size x="760" y="25"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture name="$parentHighlight" file="Interface\QuestFrame\UI-QuestTitleHighlight" alphaMode="ADD" hidden="true">
+                    <AllPoints/>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <FontString name="$parentItem" inherits="GameFontNormal" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="LEFT" x="5" y="0"/>
+                        <Anchor point="RIGHT" relativeTo="$parentBoss" relativePoint="LEFT" x="-10" y="0"/>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentBoss" inherits="GameFontHighlightSmall" justifyH="RIGHT">
+                    <Size x="300" y="25"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-50" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnClick>
+                if RLC and RLC.OnLootSelectionRowClick then
+                    RLC:OnLootSelectionRowClick(self)
+                end
+            </OnClick>
+            <OnEnter>
+                if RLC and RLC.OnLootSelectionRowEnter then
+                    RLC:OnLootSelectionRowEnter(self)
+                end
+            </OnEnter>
+            <OnLeave>
+                GameTooltip:Hide()
+            </OnLeave>
+        </Scripts>
+    </Button>
+
+    <!-- Loot Selection Frame -->
+    <Frame name="RLCLootSelectionFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent" frameStrata="DIALOG">
+        <Size x="800" y="400"/>
+        <Anchors>
+            <Anchor point="CENTER"/>
+        </Anchors>
+        <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+            <BackgroundInsets>
+                <AbsInset left="11" right="12" top="12" bottom="11"/>
+            </BackgroundInsets>
+            <TileSize>
+                <AbsValue val="32"/>
+            </TileSize>
+            <EdgeSize>
+                <AbsValue val="32"/>
+            </EdgeSize>
+        </Backdrop>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Assign Loot">
+                    <Anchors>
+                        <Anchor point="TOP" x="0" y="-20"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-5" y="-5"/>
+                </Anchors>
+            </Button>
+            
+            <Button name="$parentSaveButton" inherits="GameMenuButtonTemplate" text="Save">
+                <Size x="100" y="25"/>
+                <Anchors>
+                    <Anchor point="BOTTOM" x="0" y="20"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnLootSelectionSaveClick then
+                            RLC:OnLootSelectionSaveClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <ScrollFrame name="RLCLootSelectionScrollFrame" inherits="UIPanelScrollFrameTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="20" y="-50"/>
+                    <Anchor point="BOTTOMRIGHT" x="-40" y="50"/>
+                </Anchors>
+                <ScrollChild>
+                    <Frame name="RLCLootSelectionScrollChild">
+                        <Size x="760" y="1"/>
+                    </Frame>
+                </ScrollChild>
+            </ScrollFrame>
+        </Frames>
+        <Scripts>
+            <OnLoad>
+                self:RegisterForDrag("LeftButton");
+            </OnLoad>
+            <OnDragStart>
+                self:StartMoving();
+            </OnDragStart>
+            <OnDragStop>
+                self:StopMovingOrSizing();
+            </OnDragStop>
+            <OnShow>
+                if RaidLootCounterFrameMask then
+                    RaidLootCounterFrameMask:Show()
+                end
+            </OnShow>
+            <OnHide>
+                if RaidLootCounterFrameMask then
+                    RaidLootCounterFrameMask:Hide()
+                end
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <!-- Loot History Frame -->
+    <Frame name="RaidLootCounterLootHistoryFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent">
+        <Size x="600" y="500"/>
+        <Anchors>
+            <Anchor point="CENTER"/>
+        </Anchors>
+        <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+            <BackgroundInsets>
+                <AbsInset left="11" right="12" top="12" bottom="11"/>
+            </BackgroundInsets>
+            <TileSize>
+                <AbsValue val="32"/>
+            </TileSize>
+            <EdgeSize>
+                <AbsValue val="32"/>
+            </EdgeSize>
+        </Backdrop>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Loot History">
+                    <Anchors>
+                        <Anchor point="TOP" x="0" y="-20"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-5" y="-5"/>
+                </Anchors>
+            </Button>
+            
+            <ScrollFrame name="RLCLootHistoryScrollFrame" inherits="UIPanelScrollFrameTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="20" y="-50"/>
+                    <Anchor point="BOTTOMRIGHT" x="-40" y="20"/>
+                </Anchors>
+                <ScrollChild>
+                    <Frame name="RLCLootHistoryScrollChild">
+                        <Size x="540" y="1"/>
+                        <Frames>
+                            <SimpleHTML name="RLCLootHistoryText">
+                                <Size x="540" y="100"/>
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" x="0" y="0"/>
+                                    <Anchor point="TOPRIGHT" x="0" y="0"/>
+                                </Anchors>
+                                <FontString inherits="GameFontHighlight" justifyH="LEFT" justifyV="TOP" nonspacewrap="true"/>
+                                <Scripts>
+                                    <OnHyperlinkClick>
+                                        if RLC and RLC.OnHistoryHyperlinkClick then
+                                            RLC:OnHistoryHyperlinkClick(self, link, text, button)
+                                        end
+                                    </OnHyperlinkClick>
+                                    <OnHyperlinkEnter>
+                                        if RLC and RLC.OnHistoryHyperlinkEnter then
+                                            RLC:OnHistoryHyperlinkEnter(self, link, text)
+                                        end
+                                    </OnHyperlinkEnter>
+                                    <OnHyperlinkLeave>
+                                        GameTooltip:Hide()
+                                    </OnHyperlinkLeave>
+                                </Scripts>
+                            </SimpleHTML>
+                        </Frames>
                     </Frame>
                 </ScrollChild>
             </ScrollFrame>

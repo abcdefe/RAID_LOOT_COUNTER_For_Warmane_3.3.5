@@ -11,3 +11,5 @@ locate\zhCN.lua
 locate\zhTW.lua
 RaidLootCounter.xml
 RaidLootCounter.lua
+LootHistory.lua
+LootLogger.lua

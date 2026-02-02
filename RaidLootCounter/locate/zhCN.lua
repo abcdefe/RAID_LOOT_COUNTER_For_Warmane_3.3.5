@@ -8,6 +8,10 @@ local zhCN = {
     ["SYNC_RAID"] = "同步团队",
     ["CLEAR_DATA"] = "清空数据",
     ["SEND_STATS"] = "发送统计",
+    ["VIEW_LOOT"] = "查看掉落",
+    ["LOOT_HISTORY_TITLE"] = "历史掉落记录",
+    ["NO_LOOT"] = "没有掉落",
+    ["CHEST_OR_UNKNOWN"] = "宝箱/未知来源",
     ["LOOTED_PREFIX"] = "已拾取: ",
     
     ["MSG_NOT_IN_RAID"] = "你不在一个团队中。",

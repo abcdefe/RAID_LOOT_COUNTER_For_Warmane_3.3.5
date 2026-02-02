@@ -6,6 +6,10 @@ local enUS = {
     ["SYNC_RAID"] = "Sync Raid",
     ["CLEAR_DATA"] = "Clear Data",
     ["SEND_STATS"] = "Send Stats",
+    ["VIEW_LOOT"] = "View Loot",
+    ["LOOT_HISTORY_TITLE"] = "Loot History",
+    ["NO_LOOT"] = "No loot",
+    ["CHEST_OR_UNKNOWN"] = "Chest/Unknown",
     ["LOOTED_PREFIX"] = "Looted: ",
     
     ["MSG_NOT_IN_RAID"] = "You are not in a raid group.",
