@@ -19,6 +19,7 @@ local enUS = {
     ["MSG_DATA_CLEARED"] = "Data cleared.",
     ["MSG_NO_DATA"] = "No data to send.",
     ["MSG_STATS_SENT"] = "Stats sent to raid chat.",
+    ["MSG_NEW_BOSS_LOOT"] = "Found new boss loot (%d items):",
     ["MSG_LOADED"] = "loaded. Use |cffff00ff/rlc|r to open.",
     
     -- Output strings (Must be English for international servers)
@@ -46,6 +47,17 @@ local enUS = {
     ["CONFIRM_CLEAR_TEXT"] = "Are you sure you want to clear all data?\n\nThis will delete all members and their loot records!",
     ["CONFIRM"] = "Confirm",
     ["CANCEL"] = "Cancel",
+
+    ["TITLE_ASSIGN_MS"] = "Assign MS: ",
+    ["TITLE_ASSIGN_OS"] = "Assign OS: ",
+    ["TITLE_REMOVE_LOOT"] = "Remove Loot: ",
+    ["TITLE_ROLL_LOOT"] = "Roll Loot",
+    ["MSG_SELECT_ITEM"] = "Please select an item.",
+    ["MSG_LOOT_REMOVED"] = "Removed ",
+    ["MSG_LOOT_ASSIGNED"] = "Assigned ",
+    ["MSG_FROM"] = " from ",
+    ["MSG_TO"] = " to ",
+    ["ROLL_ANNOUNCE"] = "Roll ",
 }
 
 -- Initialize L with English defaults (ensures all keys exist)

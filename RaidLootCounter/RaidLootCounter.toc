@@ -1,14 +1,16 @@
 ## Interface: 30300
 ## Title: Raid Loot Counter
 ## Notes: 记录团队队员拾取装备数量
-## Author: YourName
-## Version: 1.0
-## SavedVariables: RaidLootCounterDB
+## Author: Bowen
+## Version: 1.2.0
+## Website: https://github.com/abcdefe/RAID_LOOT_COUNTER_For_Warmane_3.3.5
+## SavedVariablesPerCharacter: RaidLootCounterDB
 
 locate\Localization.lua
 locate\enUS.lua
 locate\zhCN.lua
 locate\zhTW.lua
+Constants.lua
 RaidLootCounter.xml
 RaidLootCounter.lua
 LootHistory.lua

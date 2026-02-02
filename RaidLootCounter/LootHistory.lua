@@ -1,4 +1,4 @@
-local addonName, ns = ...
+﻿local addonName, ns = ...
 local L = ns.L
 
 -- ============================================================================
@@ -74,7 +74,7 @@ function RLC:RefreshLootHistory()
     table.sort(sortedInstances)
     
     for _, instName in ipairs(sortedInstances) do
-        content = content .. "|cff00ffff[" .. instName .. "]|r\n"
+        content = content .. ns.CONSTANTS.COLORS.INSTANCE .. "[" .. instName .. "]|r\n"
         
         -- 2. 难度排序
         local sortedDiffs = {}
@@ -82,7 +82,7 @@ function RLC:RefreshLootHistory()
         table.sort(sortedDiffs)
         
         for _, diffName in ipairs(sortedDiffs) do
-            content = content .. "  |cffffff00" .. diffName .. "|r\n"
+            content = content .. "  " .. ns.CONSTANTS.COLORS.DIFFICULTY .. diffName .. "|r\n"
             
             -- 3. Boss按时间排序 (倒序，最近的在上面)
             local bosses = instances[instName][diffName]
@@ -90,14 +90,15 @@ function RLC:RefreshLootHistory()
             
             for _, boss in ipairs(bosses) do
                 local dateStr = date("%H:%M:%S", boss.timestamp)
-                content = content .. "    |cffffd100" .. boss.name .. "|r  |cffaaaaaa(" .. dateStr .. ")|r\n"
+                content = content .. "    " .. ns.CONSTANTS.COLORS.BOSS .. boss.name .. "|r  " .. ns.CONSTANTS.COLORS.TIMESTAMP .. "(" .. dateStr .. ")|r\n"
                 
                 if boss.loot and #boss.loot > 0 then
                     for _, itemData in ipairs(boss.loot) do
                         if type(itemData) == "table" then
                             content = content .. "      " .. itemData.link
                             if itemData.holder then
-                                content = content .. " |cff00ff00(" .. itemData.holder .. ")|r"
+                                local typeStr = (itemData.type == "OS") and " (OS)" or " (MS)"
+                                content = content .. " " .. ns.CONSTANTS.COLORS.HOLDER .. "(" .. itemData.holder .. typeStr .. ")|r"
                             end
                             content = content .. "\n"
                         else
@@ -163,8 +164,8 @@ function RLC:InjectMockData()
             instance = "Icecrown Citadel",
             timestamp = currentTime - 3600,
             loot = {
-                { link = "|cffa335ee|Hitem:50415:0:0:0:0:0:0:0:80|h[Bryntroll, the Bone Arbiter]|h|r", holder = "PlayerA" },
-                { link = "|cffa335ee|Hitem:50412:0:0:0:0:0:0:0:80|h[Loop of the Endless Labyrinth]|h|r", holder = nil }
+                { link = "|cffa335ee|Hitem:50415:0:0:0:0:0:0:0:80|h[Bryntroll, the Bone Arbiter]|h|r", holder = "PlayerA", type = "MS" },
+                { link = "|cffa335ee|Hitem:50412:0:0:0:0:0:0:0:80|h[Loop of the Endless Labyrinth]|h|r", holder = nil, type = "UNASSIGN" }
             }
         },
         -- ICC 25H: Lady Deathwhisper
@@ -174,7 +175,7 @@ function RLC:InjectMockData()
             instance = "Icecrown Citadel",
             timestamp = currentTime - 3000,
             loot = {
-                { link = "|cffa335ee|Hitem:50363:0:0:0:0:0:0:0:80|h[Deathwhisper Raiment]|h|r", holder = nil }
+                { link = "|cffa335ee|Hitem:50363:0:0:0:0:0:0:0:80|h[Deathwhisper Raiment]|h|r", holder = nil, type = "UNASSIGN" }
             }
         },
         -- ICC 25H: Gunship Chest (Test Chest logic)
@@ -184,7 +185,7 @@ function RLC:InjectMockData()
             instance = "Icecrown Citadel",
             timestamp = currentTime - 2400,
             loot = {
-                 { link = "|cffa335ee|Hitem:50343:0:0:0:0:0:0:0:80|h[Muradin's Spyglass]|h|r", holder = nil }
+                 { link = "|cffa335ee|Hitem:50343:0:0:0:0:0:0:0:80|h[Muradin's Spyglass]|h|r", holder = nil, type = "UNASSIGN" }
             }
         },
         -- ICC 10N: Marrowgar (Different difficulty)
@@ -194,7 +195,7 @@ function RLC:InjectMockData()
             instance = "Icecrown Citadel",
             timestamp = currentTime - 7200,
             loot = {
-                { link = "|cffa335ee|Hitem:50787:0:0:0:0:0:0:0:80|h[Citadel Enforcer's Claymore]|h|r", holder = "PlayerB" }
+                { link = "|cffa335ee|Hitem:50787:0:0:0:0:0:0:0:80|h[Citadel Enforcer's Claymore]|h|r", holder = "PlayerB", type = "OS" }
             }
         },
         -- RS 25H: Halion
@@ -204,8 +205,8 @@ function RLC:InjectMockData()
             instance = "The Ruby Sanctum",
             timestamp = currentTime - 1800,
             loot = {
-                { link = "|cffa335ee|Hitem:54590:0:0:0:0:0:0:0:80|h[Sharpened Twilight Scale]|h|r", holder = nil },
-                { link = "|cffa335ee|Hitem:54569:0:0:0:0:0:0:0:80|h[Halion, Staff of Forgotten Love]|h|r", holder = nil }
+                { link = "|cffa335ee|Hitem:54590:0:0:0:0:0:0:0:80|h[Sharpened Twilight Scale]|h|r", holder = nil, type = "UNASSIGN" },
+                { link = "|cffa335ee|Hitem:54569:0:0:0:0:0:0:0:80|h[Halion, Staff of Forgotten Love]|h|r", holder = nil, type = "UNASSIGN" }
             }
         }
     }
@@ -219,7 +220,7 @@ function RLC:InjectMockData()
         }
     end
 
-    print("|cff00ff00[RaidLootCounter]|r Mock data injected.")
+    print(ns.CONSTANTS.CHAT_PREFIX .. "Mock data injected.")
     if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
         RLC:RefreshLootHistory()
     end

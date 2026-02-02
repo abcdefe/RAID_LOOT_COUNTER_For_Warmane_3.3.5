@@ -9,23 +9,35 @@ local function OnLootOpened()
     -- 1. 检查是否在副本/团队中
     local inInstance, instanceType = IsInInstance()
     if instanceType ~= "raid" then
-        -- 如果只想在团本生效，保持此判断
-        -- return
+        -- and instanceType ~= "party" 
+        -- 只在团队副本(raid)和5人本(party)生效
+        return
     end
     
     -- 获取副本难度信息
-    -- GetInstanceDifficulty(): 1=10N, 2=25N, 3=10H, 4=25H (3.3.5a standard for ICC/ToC)
+    -- GetInstanceDifficulty(): 
+    -- 5人本: 1=普通(Normal), 2=英雄(Heroic)
+    -- 团本: 1=10人普通, 2=25人普通, 3=10人英雄, 4=25人英雄
     local difficulty = GetInstanceDifficulty()
     local difficultyName = ""
+    local SUFFIX = ns.CONSTANTS.DIFFICULTY_SUFFIX
     
-    if difficulty == 1 then
-        difficultyName = " (10N)"
-    elseif difficulty == 2 then
-        difficultyName = " (25N)"
-    elseif difficulty == 3 then
-        difficultyName = " (10H)"
-    elseif difficulty == 4 then
-        difficultyName = " (25H)"
+    if instanceType == "party" then
+        if difficulty == 1 then
+            difficultyName = SUFFIX["5N"]
+        elseif difficulty == 2 then
+            difficultyName = SUFFIX["5H"]
+        end
+    elseif instanceType == "raid" then
+        if difficulty == 1 then
+            difficultyName = SUFFIX["10N"]
+        elseif difficulty == 2 then
+            difficultyName = SUFFIX["25N"]
+        elseif difficulty == 3 then
+            difficultyName = SUFFIX["10H"]
+        elseif difficulty == 4 then
+            difficultyName = SUFFIX["25H"]
+        end
     end
 
     -- 2. 获取目标GUID或生成宝箱标识
@@ -79,29 +91,38 @@ local function OnLootOpened()
     
     -- 5. 遍历掉落列表
     local numItems = GetNumLootItems()
+    local hasValidLoot = false
+
     if numItems > 0 then
-        print("|cff00ff00[RaidLootCounter]|r 发现新Boss掉落 (" .. numItems .. " 件):")
         for i = 1, numItems do
             -- 3.3.5 GetLootSlotInfo 返回 texture, item, quantity, quality, locked
             local texture, item, quantity, quality, locked = GetLootSlotInfo(i)
             local lootLink = GetLootSlotLink(i)
             
-            -- 只记录紫色(4)及以上品质
-            if lootLink and quality and quality >= 4 then
+            -- Only record Epic (4) and Legendary (5) quality items
+            if lootLink and quality and quality >= ns.CONSTANTS.LOOT_CONFIG.MIN_QUALITY then
                 table.insert(lootData.loot, {
                     link = lootLink,
-                    holder = nil
+                    holder = nil,
+                    type = "UNASSIGN"
                 })
-                print(string.format("  %d. %s", i, lootLink))
+                hasValidLoot = true
             end
         end
     end
     
-    RaidLootCounterDB.lootedBosses[guid] = lootData
-    
-    -- 如果历史记录窗口打开，刷新它
-    if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
-        RLC:RefreshLootHistory()
+    if hasValidLoot then
+        print("|cff00ff00[RaidLootCounter]|r " .. string.format(L["MSG_NEW_BOSS_LOOT"] or "Found new Boss loot (%d items):", #lootData.loot))
+        for i, v in ipairs(lootData.loot) do
+            print(string.format("  %d. %s", i, v.link))
+        end
+
+        RaidLootCounterDB.lootedBosses[guid] = lootData
+        
+        -- 如果历史记录窗口打开，刷新它
+        if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
+            RLC:RefreshLootHistory()
+        end
     end
 end
 

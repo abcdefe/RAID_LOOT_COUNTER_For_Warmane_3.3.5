@@ -21,6 +21,7 @@ local zhCN = {
     ["MSG_DATA_CLEARED"] = "数据已清空。",
     ["MSG_NO_DATA"] = "没有数据可发送。",
     ["MSG_STATS_SENT"] = "统计信息已发送到团队频道。",
+    ["MSG_NEW_BOSS_LOOT"] = "发现新Boss掉落 (%d 件):",
     ["MSG_LOADED"] = "已加载。输入 |cffff00ff/rlc|r 打开窗口。",
     
     -- Note: OUTPUT_ keys are intentionally OMITTED to fallback to English
@@ -49,6 +50,17 @@ local zhCN = {
     ["CONFIRM_CLEAR_TEXT"] = "确定要清空所有数据吗？\n\n这将删除所有成员和他们的拾取记录！",
     ["CONFIRM"] = "确定",
     ["CANCEL"] = "取消",
+
+    ["TITLE_ASSIGN_MS"] = "分配MS: ",
+    ["TITLE_ASSIGN_OS"] = "分配OS: ",
+    ["TITLE_REMOVE_LOOT"] = "移除装备: ",
+    ["TITLE_ROLL_LOOT"] = "Roll 装备",
+    ["MSG_SELECT_ITEM"] = "请选择一件装备。",
+    ["MSG_LOOT_REMOVED"] = "已移除 ",
+    ["MSG_LOOT_ASSIGNED"] = "已分配 ",
+    ["MSG_FROM"] = " 从 ",
+    ["MSG_TO"] = " 给 ",
+    ["ROLL_ANNOUNCE"] = "Roll ",
 }
 
 for k, v in pairs(zhCN) do

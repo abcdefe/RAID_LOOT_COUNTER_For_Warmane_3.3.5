@@ -17,22 +17,28 @@
         <Layers>
             <Layer level="OVERLAY">
                 <FontString name="$parentName" inherits="GameFontNormal" justifyH="LEFT">
-                    <Size x="150" y="20"/>
+                    <Size x="120" y="20"/>
                     <Anchors>
                         <Anchor point="LEFT" x="5" y="0"/>
                     </Anchors>
                 </FontString>
-                <FontString name="$parentCount" inherits="GameFontNormal" justifyH="LEFT" text="Looted: 0">
-                    <Size x="80" y="20"/>
+                <FontString name="$parentMSCount" inherits="GameFontNormal" justifyH="LEFT" text="MS: 0">
+                    <Size x="50" y="20"/>
                     <Anchors>
-                        <Anchor point="LEFT" x="160" y="0"/>
+                        <Anchor point="LEFT" x="130" y="0"/>
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentOSCount" inherits="GameFontNormal" justifyH="LEFT" text="OS: 0">
+                    <Size x="50" y="20"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="185" y="0"/>
                     </Anchors>
                 </FontString>
             </Layer>
         </Layers>
         <Frames>
             <Button name="$parentMinusBtn" inherits="GameMenuButtonTemplate" text="-">
-                <Size x="30" y="25"/>
+                <Size x="20" y="25"/>
                 <Anchors>
                     <Anchor point="LEFT" x="240" y="0"/>
                 </Anchors>
@@ -45,9 +51,9 @@
                 </Scripts>
             </Button>
             <Button name="$parentPlusBtn" inherits="GameMenuButtonTemplate" text="+">
-                <Size x="30" y="25"/>
+                <Size x="20" y="25"/>
                 <Anchors>
-                    <Anchor point="LEFT" relativeTo="$parentMinusBtn" relativePoint="RIGHT" x="5" y="0"/>
+                    <Anchor point="LEFT" relativeTo="$parentMinusBtn" relativePoint="RIGHT" x="2" y="0"/>
                 </Anchors>
                 <Scripts>
                     <OnClick>
@@ -310,6 +316,20 @@
                 </Scripts>
             </Button>
 
+            <Button name="$parentSaveOSButton" inherits="GameMenuButtonTemplate" text="OS Roll" hidden="true">
+                <Size x="100" y="25"/>
+                <Anchors>
+                    <Anchor point="LEFT" relativeTo="$parentSaveButton" relativePoint="RIGHT" x="20" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnLootSelectionSaveOSClick then
+                            RLC:OnLootSelectionSaveOSClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
             <ScrollFrame name="RLCLootSelectionScrollFrame" inherits="UIPanelScrollFrameTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" x="20" y="-50"/>
@@ -346,7 +366,7 @@
     </Frame>
 
     <!-- Loot History Frame -->
-    <Frame name="RaidLootCounterLootHistoryFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent">
+    <Frame name="RaidLootCounterLootHistoryFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent" frameStrata="DIALOG">
         <Size x="600" y="500"/>
         <Anchors>
             <Anchor point="CENTER"/>
@@ -425,6 +445,16 @@
             <OnDragStop>
                 self:StopMovingOrSizing();
             </OnDragStop>
+            <OnShow>
+                if RaidLootCounterFrameMask then
+                    RaidLootCounterFrameMask:Show()
+                end
+            </OnShow>
+            <OnHide>
+                if RaidLootCounterFrameMask then
+                    RaidLootCounterFrameMask:Hide()
+                end
+            </OnHide>
         </Scripts>
     </Frame>
 </Ui>
