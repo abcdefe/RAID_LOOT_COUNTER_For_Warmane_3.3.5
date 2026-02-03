@@ -8,6 +8,10 @@ local zhTW = {
     ["SYNC_RAID"] = "同步團隊",
     ["CLEAR_DATA"] = "清空數據",
     ["SEND_STATS"] = "發送統計",
+    ["VIEW_LOOT"] = "查看掉落",
+    ["LOOT_HISTORY_TITLE"] = "歷史掉落記錄",
+    ["NO_LOOT"] = "沒有掉落",
+    ["CHEST_OR_UNKNOWN"] = "寶箱",
     ["LOOTED_PREFIX"] = "已拾取: ",
     
     ["MSG_NOT_IN_RAID"] = "你不在一個團隊中。",
@@ -17,6 +21,7 @@ local zhTW = {
     ["MSG_DATA_CLEARED"] = "數據已清空。",
     ["MSG_NO_DATA"] = "沒有數據可發送。",
     ["MSG_STATS_SENT"] = "統計信息已發送到團隊頻道。",
+    ["MSG_NEW_BOSS_LOOT"] = "發現新Boss掉落 (%d 件):",
     ["MSG_LOADED"] = "已加載。輸入 |cffff00ff/rlc|r 打開窗口。",
     
     -- Note: OUTPUT_ keys are intentionally OMITTED to fallback to English
@@ -45,6 +50,18 @@ local zhTW = {
     ["CONFIRM_CLEAR_TEXT"] = "確定要清空所有數據嗎？\n\n這將刪除所有成員和他們的拾取記錄！",
     ["CONFIRM"] = "確定",
     ["CANCEL"] = "取消",
+
+    ["TITLE_ASSIGN_MS"] = "分配MS: ",
+    ["TITLE_ASSIGN_OS"] = "分配OS: ",
+    ["TITLE_ASSIGN_LOOT"] = "分配裝備: ",
+    ["TITLE_REMOVE_LOOT"] = "移除裝備: ",
+    ["TITLE_ROLL_LOOT"] = "Roll 裝備",
+    ["MSG_SELECT_ITEM"] = "請選擇一件裝備。",
+    ["MSG_LOOT_REMOVED"] = "已移除 ",
+    ["MSG_LOOT_ASSIGNED"] = "已分配 ",
+    ["MSG_FROM"] = " 從 ",
+    ["MSG_TO"] = " 給 ",
+    ["ROLL_ANNOUNCE"] = "Roll ",
 }
 
 for k, v in pairs(zhTW) do
