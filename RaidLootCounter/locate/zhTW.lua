@@ -11,7 +11,7 @@ local zhTW = {
     ["VIEW_LOOT"] = "查看掉落",
     ["LOOT_HISTORY_TITLE"] = "歷史掉落記錄",
     ["NO_LOOT"] = "沒有掉落",
-    ["CHEST_OR_UNKNOWN"] = "寶箱/未知來源",
+    ["CHEST_OR_UNKNOWN"] = "寶箱",
     ["LOOTED_PREFIX"] = "已拾取: ",
     
     ["MSG_NOT_IN_RAID"] = "你不在一個團隊中。",
@@ -53,6 +53,7 @@ local zhTW = {
 
     ["TITLE_ASSIGN_MS"] = "分配MS: ",
     ["TITLE_ASSIGN_OS"] = "分配OS: ",
+    ["TITLE_ASSIGN_LOOT"] = "分配裝備: ",
     ["TITLE_REMOVE_LOOT"] = "移除裝備: ",
     ["TITLE_ROLL_LOOT"] = "Roll 裝備",
     ["MSG_SELECT_ITEM"] = "請選擇一件裝備。",

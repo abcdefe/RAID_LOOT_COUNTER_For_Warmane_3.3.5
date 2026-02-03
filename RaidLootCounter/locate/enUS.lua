@@ -9,7 +9,7 @@ local enUS = {
     ["VIEW_LOOT"] = "View Loot",
     ["LOOT_HISTORY_TITLE"] = "Loot History",
     ["NO_LOOT"] = "No loot",
-    ["CHEST_OR_UNKNOWN"] = "Chest/Unknown",
+    ["CHEST_OR_UNKNOWN"] = "Chest",
     ["LOOTED_PREFIX"] = "Looted: ",
     
     ["MSG_NOT_IN_RAID"] = "You are not in a raid group.",
@@ -50,6 +50,7 @@ local enUS = {
 
     ["TITLE_ASSIGN_MS"] = "Assign MS: ",
     ["TITLE_ASSIGN_OS"] = "Assign OS: ",
+    ["TITLE_ASSIGN_LOOT"] = "Assign Loot: ",
     ["TITLE_REMOVE_LOOT"] = "Remove Loot: ",
     ["TITLE_ROLL_LOOT"] = "Roll Loot",
     ["MSG_SELECT_ITEM"] = "Please select an item.",

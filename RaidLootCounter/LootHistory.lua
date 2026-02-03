@@ -181,7 +181,7 @@ function RLC:InjectMockData()
         -- ICC 25H: Gunship Chest (Test Chest logic)
         {
             guid = "Chest_Gunship_25H", 
-            name = (L["CHEST_OR_UNKNOWN"] or "Chest/Unknown") .. " - Gunship Battle (25H)",
+            name = (L["CHEST_OR_UNKNOWN"] or "Chest") .. " - Gunship Battle (25H)",
             instance = "Icecrown Citadel",
             timestamp = currentTime - 2400,
             loot = {

@@ -61,6 +61,43 @@ ns.CONSTANTS.DIFFICULTY_SUFFIX = {
     ["25H"] = " (25H)",
 }
 
+-- 副本名称缩写映射 (支持多语言)
+ns.CONSTANTS.INSTANCE_ABBREVIATIONS = {
+    -- English
+    ["Icecrown Citadel"] = "ICC",
+    ["Trial of the Crusader"] = "ToC",
+    ["Ruby Sanctum"] = "RS",
+    ["The Ruby Sanctum"] = "RS",
+    ["Onyxia's Lair"] = "Ony",
+    ["Vault of Archavon"] = "VoA",
+    ["Naxxramas"] = "Naxx",
+    ["Ulduar"] = "Uld",
+    ["The Eye of Eternity"] = "EoE",
+    ["The Obsidian Sanctum"] = "OS",
+    
+    -- zhCN
+    ["冰冠堡垒"] = "ICC",
+    ["十字军的试炼"] = "ToC",
+    ["红玉圣殿"] = "RS",
+    ["奥妮克希亚的巢穴"] = "Ony",
+    ["阿尔卡冯的宝库"] = "VoA",
+    ["纳克萨玛斯"] = "Naxx",
+    ["奥杜尔"] = "Uld",
+    ["永恒之眼"] = "EoE",
+    ["黑曜石圣殿"] = "OS",
+    
+    -- zhTW
+    ["冰冠城塞"] = "ICC",
+    ["十字軍試煉"] = "ToC",
+    ["晶紅聖所"] = "RS",
+    ["奧妮克希亞的巢穴"] = "Ony",
+    ["亞夏梵穹殿"] = "VoA",
+    ["納克薩瑪斯"] = "Naxx",
+    ["奧杜亞"] = "Uld",
+    ["永恆之眼"] = "EoE",
+    ["黑曜聖所"] = "OS",
+}
+
 -- 掉落记录配置
 ns.CONSTANTS.LOOT_CONFIG = {
     MIN_QUALITY = 4, -- Epic

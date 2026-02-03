@@ -163,7 +163,7 @@
             </Button>
 
             <Button name="$parentStartRollCaptureButton" inherits="GameMenuButtonTemplate" text="开启roll捕获">
-                <Size x="120" y="25"/>
+                <Size x="150" y="25"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="$parentSyncButton" relativePoint="BOTTOMLEFT" x="0" y="-5"/>
                 </Anchors>
@@ -177,7 +177,7 @@
             </Button>
 
             <Button name="$parentStopRollCaptureButton" inherits="GameMenuButtonTemplate" text="停止roll捕获">
-                <Size x="120" y="25"/>
+                <Size x="150" y="25"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="$parentStartRollCaptureButton" relativePoint="TOPRIGHT" x="10" y="0"/>
                 </Anchors>
@@ -244,10 +244,10 @@
                         <Anchor point="RIGHT" relativeTo="$parentBoss" relativePoint="LEFT" x="-10" y="0"/>
                     </Anchors>
                 </FontString>
-                <FontString name="$parentBoss" inherits="GameFontHighlightSmall" justifyH="RIGHT">
-                    <Size x="300" y="25"/>
+                <FontString name="$parentBoss" inherits="GameFontHighlightSmall" justifyH="LEFT">
+                    <Size x="350" y="25"/>
                     <Anchors>
-                        <Anchor point="RIGHT" x="-50" y="0"/>
+                        <Anchor point="RIGHT" x="0" y="0"/>
                     </Anchors>
                 </FontString>
             </Layer>

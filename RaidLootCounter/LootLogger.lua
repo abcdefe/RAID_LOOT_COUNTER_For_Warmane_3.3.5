@@ -53,7 +53,7 @@ local function OnLootOpened()
         local subZone = GetSubZoneText() or ""
         if subZone == "" then subZone = GetMinimapZoneText() or "Unknown" end
         
-        bossName = (L["CHEST_OR_UNKNOWN"] or "Chest/Unknown") .. " - " .. subZone .. difficultyName
+        bossName = (L["CHEST_OR_UNKNOWN"] or "Chest") .. " - " .. subZone .. difficultyName
         
         -- 生成内容签名作为伪GUID
         -- 结合 子区域名 + 难度 来唯一标识 (不再使用物品内容)

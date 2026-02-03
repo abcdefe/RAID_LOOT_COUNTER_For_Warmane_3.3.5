@@ -11,7 +11,7 @@ local zhCN = {
     ["VIEW_LOOT"] = "查看掉落",
     ["LOOT_HISTORY_TITLE"] = "历史掉落记录",
     ["NO_LOOT"] = "没有掉落",
-    ["CHEST_OR_UNKNOWN"] = "宝箱/未知来源",
+    ["CHEST_OR_UNKNOWN"] = "宝箱",
     ["LOOTED_PREFIX"] = "已拾取: ",
     
     ["MSG_NOT_IN_RAID"] = "你不在一个团队中。",
@@ -53,6 +53,7 @@ local zhCN = {
 
     ["TITLE_ASSIGN_MS"] = "分配MS: ",
     ["TITLE_ASSIGN_OS"] = "分配OS: ",
+    ["TITLE_ASSIGN_LOOT"] = "分配装备: ",
     ["TITLE_REMOVE_LOOT"] = "移除装备: ",
     ["TITLE_ROLL_LOOT"] = "Roll 装备",
     ["MSG_SELECT_ITEM"] = "请选择一件装备。",

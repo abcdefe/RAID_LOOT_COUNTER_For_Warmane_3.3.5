@@ -1,4 +1,4 @@
-﻿-- 魔兽世界 3.3.5a 团队拾取计数器插件
+-- 魔兽世界 3.3.5a 团队拾取计数器插件
 -- RaidLootCounter.lua
 -- 整理后的代码结构
 
@@ -690,11 +690,11 @@ function RLC:ShowLootSelection(playerName, mode)
     
     if title then 
         if RLC.selectionMode == "UNASSIGN" then
-            title:SetText("移除装备: " .. (playerName or "?"))
+            title:SetText(L["TITLE_REMOVE_LOOT"] .. (playerName or "?"))
         elseif RLC.selectionMode == "ROLL" then
-            title:SetText("Roll 装备")
+            title:SetText(L["TITLE_ROLL_LOOT"])
         else
-            title:SetText("分配装备: " .. (playerName or "?")) 
+            title:SetText(L["TITLE_ASSIGN_LOOT"] .. (playerName or "?")) 
         end
     end
     
@@ -757,7 +757,7 @@ function RLC:ShowLootSelection(playerName, mode)
                         table.insert(displayLoot, {
                             bossGUID = bossGUID,
                             bossName = data.name,
-                            instanceName = data.instance,
+                            instanceName = ns.CONSTANTS.INSTANCE_ABBREVIATIONS[data.instance] or data.instance,
                             lootIndex = i,
                             link = link,
                             timestamp = data.timestamp,
