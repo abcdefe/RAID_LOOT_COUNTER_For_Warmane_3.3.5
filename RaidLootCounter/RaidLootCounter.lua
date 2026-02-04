@@ -28,7 +28,7 @@ local lootSelectionRows = {}
 -- 临时状态
 RLC.targetPlayer = nil
 RLC.selectedLoot = nil
-RLC.selectionMode = "ASSIGN" -- "ASSIGN", "ASSIGN_OS", "UNASSIGN", "ROLL"
+RLC.selectionMode = "ASSIGN" -- "ASSIGN", "UNASSIGN", "ROLL"
 
 -- ============================================================================
 -- 2. 数据管理 (Data Management)
@@ -132,6 +132,15 @@ local function GetPlayerItems(playerName)
             end
         end
     end
+    
+    table.sort(items, function(a, b)
+        local isAMS = (a.type == "MS")
+        local isBMS = (b.type == "MS")
+        if isAMS and not isBMS then return true end
+        if not isAMS and isBMS then return false end
+        return false 
+    end)
+    
     return items
 end
 
@@ -247,7 +256,7 @@ function RLC:SendLootUpdate(playerName, newCount, isAdd, itemLink, isOS)
     local osCount = playerData and playerData.osCount or 0
     
     -- 2. 发送 Total 信息
-    local totalMsg = "Total: MS " .. msCount .. " OS " .. osCount
+    local totalMsg = "Total: MS " .. msCount
     SendChatMessage(totalMsg, "RAID_WARNING")
     
     -- 3. 发送 MS 和 OS 装备列表
@@ -333,7 +342,7 @@ function RLC:SendToRaid()
         SendChatMessage("[" .. displayClass .. "]", "RAID_WARNING")
         
         for _, player in ipairs(players) do
-            local msg = player.name .. ": MS:" .. player.msCount .. ", OS:" .. player.osCount
+            local msg = player.name .. ": MS:" .. player.msCount
             SendChatMessage(msg, "RAID_WARNING")
             
             local items = GetPlayerItems(player.name)
@@ -483,8 +492,8 @@ function RLC:DisplayRollResults()
     Announce("=== Raid Loot Counter " .. rollTypeStr .. " Roll Results === (" .. #rollResults .. " rolls)")
     
     for i, result in ipairs(rollResults) do
-        local msg = string.format("%d. %s: %d (%d-%d) [MS: %d, OS: %d]", 
-            i, result.player, result.roll, result.min, result.max, result.msCount, result.osCount)
+        local msg = string.format("%d. %s: %d (%d-%d) [MS: %d]", 
+            i, result.player, result.roll, result.min, result.max, result.msCount)
         Announce(msg)
     end
     
@@ -495,7 +504,7 @@ function RLC:DisplayRollResults()
         local function GetWinnerString(res)
             local className = res.class or "Unknown"
             local displayClass = ns.CONSTANTS.ENGLISH_CLASS_NAMES[className] or className
-            return string.format("%s {%s} (%d (%d-%d)  MS: %d OS: %d)", res.player, displayClass, res.roll, res.min, res.max, res.msCount, res.osCount)
+            return string.format("%s {%s} (%d (%d-%d)  MS: %d)", res.player, displayClass, res.roll, res.min, res.max, res.msCount)
         end
         
         table.insert(winners, GetWinnerString(first))
