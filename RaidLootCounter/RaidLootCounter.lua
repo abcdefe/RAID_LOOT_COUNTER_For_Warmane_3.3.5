@@ -468,17 +468,15 @@ function RLC:DisplayRollResults()
     
     table.sort(rollResults, function(a, b)
         if isOSRoll then
-            -- OS Roll: OS Count ASC -> Roll DESC
-            if a.osCount ~= b.osCount then
-                return a.osCount < b.osCount
-            end
+            -- OS Roll: Just Roll DESC (Ignore OS Count)
+            return a.roll > b.roll
         else
             -- MS Roll: MS Count ASC -> Roll DESC
             if a.msCount ~= b.msCount then
                 return a.msCount < b.msCount
             end
+            return a.roll > b.roll
         end
-        return a.roll > b.roll
     end)
     
     local rollTypeStr = isOSRoll and "OS" or "MS"
@@ -496,7 +494,7 @@ function RLC:DisplayRollResults()
         
         local function GetWinnerString(res)
             local className = res.class or "Unknown"
-            local displayClass = ENGLISH_CLASS_NAMES[className] or className
+            local displayClass = ns.CONSTANTS.ENGLISH_CLASS_NAMES[className] or className
             return string.format("%s {%s} (%d (%d-%d)  MS: %d OS: %d)", res.player, displayClass, res.roll, res.min, res.max, res.msCount, res.osCount)
         end
         
@@ -506,7 +504,7 @@ function RLC:DisplayRollResults()
             local current = rollResults[i]
             local isTie = false
             if isOSRoll then
-                 if current.roll == first.roll and current.osCount == first.osCount then isTie = true end
+                 if current.roll == first.roll then isTie = true end
             else
                  if current.roll == first.roll and current.msCount == first.msCount then isTie = true end
             end
