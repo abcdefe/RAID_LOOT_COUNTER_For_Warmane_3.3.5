@@ -686,10 +686,19 @@ function RLC:ShowLootSelection(playerName, mode)
     RLC.selectedLoot = nil
     
     local frame = RLCLootSelectionFrame
-    if not frame then return end
+    if not frame then 
+        print(ns.CONSTANTS.CHAT_PREFIX .. "Error: RLCLootSelectionFrame not found")
+        return 
+    end
+
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER")
     
     local scrollChild = RLCLootSelectionScrollChild
-    if not scrollChild then return end
+    if not scrollChild then 
+        print(ns.CONSTANTS.CHAT_PREFIX .. "Error: RLCLootSelectionScrollChild not found")
+        return 
+    end
     
     local title = _G[frame:GetName().."Title"]
     local saveButton = _G[frame:GetName().."SaveButton"]
@@ -832,7 +841,14 @@ function RLC:OnMinusClick(parentFrame)
 end
 
 function RLC:OnPlusClick(parentFrame)
-    if not parentFrame or not parentFrame.playerName then return end
+    if not parentFrame then
+        print(ns.CONSTANTS.CHAT_PREFIX .. "Error: Parent frame is nil")
+        return
+    end
+    if not parentFrame.playerName then 
+        print(ns.CONSTANTS.CHAT_PREFIX .. "Error: PlayerName is nil on frame " .. (parentFrame:GetName() or "Unknown"))
+        return 
+    end
     RLC:ShowLootSelection(parentFrame.playerName, "ASSIGN")
 end
 
@@ -1066,6 +1082,17 @@ local function OnAddonLoaded(self, event, addonName)
             else
                 print("|cffff0000[RaidLootCounter]|r InjectMockData not found.")
             end
+            return
+        elseif msg == "reset" then
+            if RaidLootCounterFrame then 
+                RaidLootCounterFrame:ClearAllPoints()
+                RaidLootCounterFrame:SetPoint("CENTER") 
+            end
+            if RLCLootSelectionFrame then 
+                RLCLootSelectionFrame:ClearAllPoints()
+                RLCLootSelectionFrame:SetPoint("CENTER") 
+            end
+            print(ns.CONSTANTS.CHAT_PREFIX .. "Frames reset to center.")
             return
         end
 
