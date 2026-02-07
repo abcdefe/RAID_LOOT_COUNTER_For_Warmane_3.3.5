@@ -59,6 +59,68 @@ local enUS = {
     ["MSG_FROM"] = " from ",
     ["MSG_TO"] = " to ",
     ["ROLL_ANNOUNCE"] = "Roll ",
+
+    -- Instance Abbreviations
+    ["INSTANCE_ABBREVIATIONS"] = {
+        ["Icecrown Citadel"] = "ICC",
+        ["Trial of the Crusader"] = "ToC",
+        ["Ruby Sanctum"] = "RS",
+        ["The Ruby Sanctum"] = "RS",
+        ["Onyxia's Lair"] = "Ony",
+        ["Vault of Archavon"] = "VoA",
+        ["Naxxramas"] = "Naxx",
+        ["Ulduar"] = "Uld",
+        ["The Eye of Eternity"] = "EoE",
+        ["The Obsidian Sanctum"] = "OS"
+    },
+
+    -- Tier Patterns
+    ["TIER_PATTERNS"] = {
+        ["T7"] = {
+            "of the Lost Conqueror", "of the Lost Protector", "of the Lost Vanquisher"
+        },
+        ["T8"] = {
+            "of the Wayward Conqueror", "of the Wayward Protector", "of the Wayward Vanquisher"
+        },
+        ["T9"] = {
+            "Trophy of the Crusade", 
+            "Regalia of the Grand Conqueror", "Regalia of the Grand Protector", "Regalia of the Grand Vanquisher"
+        },
+        ["T10"] = {
+            "Mark of Sanctification"
+        }
+    },
+
+    -- Tier Sets (Prefixes)
+    ["TIER_SETS"] = {
+        -- T7
+        ["Scourgeborne"] = "T7", ["Dreamwalker"] = "T7", ["Cryptstalker"] = "T7", ["Frostfire"] = "T7",
+        ["Redemption"] = "T7", ["Faith"] = "T7", ["Bonescythe"] = "T7", ["Earthshatter"] = "T7",
+        ["Plagueheart"] = "T7", ["Dreadnaught"] = "T7",
+        
+        -- T8
+        ["Darkruned"] = "T8", ["Nightsong"] = "T8", ["Scourgestalker"] = "T8", ["Kirin Tor"] = "T8",
+        ["Aegis"] = "T8", ["Sanctification"] = "T8", ["Terrorblade"] = "T8", ["Worldbreaker"] = "T8",
+        ["Deathbringer"] = "T8", ["Siegebreaker"] = "T8",
+
+        -- T9
+        ["Thassarian"] = "T9", ["Koltira"] = "T9",
+        ["Malfurion"] = "T9", ["Runetotem"] = "T9",
+        ["Windrunner"] = "T9", ["Wyrmstalker"] = "T9",
+        ["Khadgar"] = "T9", ["Sunstrider"] = "T9",
+        ["Turalyon"] = "T9", ["Liadrin"] = "T9",
+        ["Velen"] = "T9", ["Zabra"] = "T9",
+        ["VanCleef"] = "T9", ["Garona"] = "T9",
+        ["Nobundo"] = "T9", ["Thrall"] = "T9",
+        ["Kel'Thuzad"] = "T9", ["Gul'dan"] = "T9",
+        ["Wrynn"] = "T9", ["Hellscream"] = "T9",
+        ["Triumphant"] = "T9", ["Conqueror's"] = "T9",
+
+        -- T10
+        ["Scourgelord"] = "T10", ["Lasherweave"] = "T10", ["Ahn'Kahar"] = "T10", ["Bloodmage"] = "T10",
+        ["Lightsworn"] = "T10", ["Crimson Acolyte"] = "T10", ["Shadowblade"] = "T10", ["Frost Witch"] = "T10",
+        ["Dark Coven"] = "T10", ["Ymirjar"] = "T10", ["Sanctified"] = "T10"
+    }
 }
 
 -- Initialize L with English defaults (ensures all keys exist)
