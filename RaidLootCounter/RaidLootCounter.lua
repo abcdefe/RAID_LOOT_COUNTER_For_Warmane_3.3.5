@@ -15,6 +15,87 @@ RLC = {} -- 全局对象，供XML调用
 local CLASS_COLORS = ns.CONSTANTS.CLASS_COLORS
 local ENGLISH_CLASS_NAMES = ns.CONSTANTS.ENGLISH_CLASS_NAMES
 
+-- 工具函数：检查物品是否为装备绑定 (BOE)
+local tooltipScanner
+function ns.IsItemBOE(itemLink)
+    if not itemLink then return false end
+    
+    if not tooltipScanner then
+        tooltipScanner = CreateFrame("GameTooltip", "RLCScannerTooltip", nil, "GameTooltipTemplate")
+        tooltipScanner:SetOwner(UIParent, "ANCHOR_NONE")
+    end
+    
+    tooltipScanner:ClearLines()
+    tooltipScanner:SetHyperlink(itemLink)
+    
+    for i = 1, tooltipScanner:NumLines() do
+        local line = _G["RLCScannerTooltipTextLeft" .. i]
+        if line then
+            local text = line:GetText()
+            if text and text == ITEM_BIND_ON_EQUIP then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
+-- 工具函数：获取物品的 Tier 等级 (T7, T8, T9, T10)
+function ns.GetItemTier(itemLink)
+    if not itemLink then return nil end
+    
+    local itemName = GetItemInfo(itemLink)
+    if not itemName then 
+        -- Fallback to extracting name from link if not cached
+        itemName = string.match(itemLink, "%[([^%]]+)%]")
+    end
+    
+    if not itemName then return nil end
+
+    -- 1. Check for Token Patterns
+    for tier, patterns in pairs(ns.CONSTANTS.TIER_PATTERNS) do
+        for _, pattern in ipairs(patterns) do
+            if string.find(itemName, pattern) then
+                return tier
+            end
+        end
+    end
+
+    -- 2. Check for Set Names via Tooltip
+    if not tooltipScanner then
+        tooltipScanner = CreateFrame("GameTooltip", "RLCScannerTooltip", nil, "GameTooltipTemplate")
+        tooltipScanner:SetOwner(UIParent, "ANCHOR_NONE")
+    end
+    
+    tooltipScanner:ClearLines()
+    tooltipScanner:SetHyperlink(itemLink)
+    
+    -- Check lines for Set Name
+    -- Usually "Set Name (0/5)"
+    for i = 1, tooltipScanner:NumLines() do
+        local line = _G["RLCScannerTooltipTextLeft" .. i]
+        if line then
+            local text = line:GetText()
+            if text then
+                -- Try to extract Set Name
+                -- Pattern: "Name (x/y)"
+                local setName = string.match(text, "^(.+) %([%d]+/[%d]+%)$")
+                if setName then
+                    -- Check if Set Name contains any of our known keys
+                    for key, tier in pairs(ns.CONSTANTS.TIER_SETS) do
+                        if string.find(setName, key) then
+                            return tier
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
 -- Roll点捕获变量
 local isRollCapturing = false
 local rollResults = {}
@@ -680,6 +761,67 @@ local function GetLootSelectionRow(parent, index)
     return row
 end
 
+function RLC:UpdateLootSelectionScroll()
+    if not RLC.lootSelectionData then return end
+    
+    local scrollFrame = RLCLootSelectionScrollFrame
+    if not scrollFrame then return end
+    
+    local numRows = #RLC.lootSelectionData
+    -- 12 visible rows (approx 300 height / 25)
+    FauxScrollFrame_Update(scrollFrame, numRows, 12, 25)
+    
+    local offset = FauxScrollFrame_GetOffset(scrollFrame)
+    HideAllLootSelectionRows()
+    
+    local parent = RLCLootSelectionFrame
+    local yPos = -50
+    
+    for i = 1, 12 do
+        local dataIndex = offset + i
+        if dataIndex > numRows then break end
+        
+        local item = RLC.lootSelectionData[dataIndex]
+        local row = GetLootSelectionRow(parent, i)
+        row:SetPoint("TOPLEFT", 20, yPos)
+        
+        local displayText = ""
+        local tier = ns.GetItemTier(item.link)
+        if tier then
+            displayText = "|cffffd100[" .. tier .. "]|r "
+        end
+        
+        if item.isBOE then
+            displayText = displayText .. "|cff00ccff[BOE]|r "
+        end
+        
+        displayText = displayText .. item.link
+        if RLC.selectionMode == "UNASSIGN" then
+             local typeStr = item.type or "UNASSIGN"
+             displayText = displayText .. "  " .. ns.CONSTANTS.COLORS.GRAY .. "(" .. typeStr .. ")|r"
+        end
+        row.itemText:SetText(displayText)
+        
+        local locationText = ""
+        if item.instanceName and item.instanceName ~= "" then
+            locationText = item.instanceName .. " - "
+        end
+        locationText = locationText .. (item.bossName or "Unknown")
+        row.bossText:SetText(locationText)
+        
+        row.data = item
+        
+        -- Update Highlight
+        if RLC.selectedLoot and RLC.selectedLoot == item then
+            if row.highlight then row.highlight:Show() end
+        else
+            if row.highlight then row.highlight:Hide() end
+        end
+
+        yPos = yPos - 25
+    end
+end
+
 function RLC:ShowLootSelection(playerName, mode)
     RLC.targetPlayer = playerName
     RLC.selectionMode = mode or "ASSIGN"
@@ -693,12 +835,6 @@ function RLC:ShowLootSelection(playerName, mode)
 
     frame:ClearAllPoints()
     frame:SetPoint("CENTER")
-    
-    local scrollChild = RLCLootSelectionScrollChild
-    if not scrollChild then 
-        print(ns.CONSTANTS.CHAT_PREFIX .. "Error: RLCLootSelectionScrollChild not found")
-        return 
-    end
     
     local title = _G[frame:GetName().."Title"]
     local saveButton = _G[frame:GetName().."SaveButton"]
@@ -742,22 +878,28 @@ function RLC:ShowLootSelection(playerName, mode)
         end
     end
     
-    HideAllLootSelectionRows()
-    
-    local displayLoot = {}
+    RLC.lootSelectionData = {}
     if RaidLootCounterDB.lootedBosses then
         for bossGUID, data in pairs(RaidLootCounterDB.lootedBosses) do
             if data.loot then
                 for i, itemData in ipairs(data.loot) do
-                    local link, holder, itemType
+                    local link, holder, itemType, isBOE
                     if type(itemData) == "table" then
                         link = itemData.link
                         holder = itemData.holder
                         itemType = itemData.type
+                        isBOE = itemData.isBOE
+                        if isBOE == nil and link then
+                            isBOE = ns.IsItemBOE(link)
+                        end
                     else
                         link = itemData
                         holder = nil
                         itemType = nil
+                        isBOE = nil
+                        if link then
+                            isBOE = ns.IsItemBOE(link)
+                        end
                     end
                     
                     local shouldInclude = false
@@ -770,14 +912,15 @@ function RLC:ShowLootSelection(playerName, mode)
                     end
                     
                     if shouldInclude then
-                        table.insert(displayLoot, {
+                        table.insert(RLC.lootSelectionData, {
                             bossGUID = bossGUID,
                             bossName = data.name,
                             instanceName = ns.CONSTANTS.INSTANCE_ABBREVIATIONS[data.instance] or data.instance,
                             lootIndex = i,
                             link = link,
                             timestamp = data.timestamp,
-                            type = itemType
+                            type = itemType,
+                            isBOE = isBOE
                         })
                     end
                 end
@@ -785,34 +928,11 @@ function RLC:ShowLootSelection(playerName, mode)
         end
     end
     
-    table.sort(displayLoot, function(a, b)
-        return (a.timestamp or 0) > (b.timestamp or 0)
+    table.sort(RLC.lootSelectionData, function(a, b)
+        return (a.timestamp or 0) < (b.timestamp or 0)
     end)
     
-    local yPos = -5
-    for i, item in ipairs(displayLoot) do
-        local row = GetLootSelectionRow(scrollChild, i)
-        row:SetPoint("TOPLEFT", 5, yPos)
-        
-        local displayText = item.link
-        if RLC.selectionMode == "UNASSIGN" then
-             local typeStr = item.type or "UNASSIGN"
-             displayText = displayText .. "  " .. ns.CONSTANTS.COLORS.GRAY .. "(" .. typeStr .. ")|r"
-        end
-        row.itemText:SetText(displayText)
-        
-        local locationText = ""
-        if item.instanceName and item.instanceName ~= "" then
-            locationText = item.instanceName .. " - "
-        end
-        locationText = locationText .. (item.bossName or "Unknown")
-        row.bossText:SetText(locationText)
-        
-        row.data = item
-        yPos = yPos - 25
-    end
-    
-    scrollChild:SetHeight(math.abs(yPos) + 10)
+    RLC:UpdateLootSelectionScroll()
     frame:Show()
 end
 

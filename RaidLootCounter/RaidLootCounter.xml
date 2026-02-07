@@ -269,6 +269,36 @@
         </Scripts>
     </Button>
 
+    <!-- Loot History Row Template -->
+    <Button name="RLC_LootHistoryRowTemplate" virtual="true">
+        <Size x="560" y="16"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentText" inherits="GameFontHighlightSmall" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="5" y="0"/>
+                        <Anchor point="BOTTOMRIGHT" x="-5" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnClick>
+                if RLC and RLC.OnHistoryRowClick then
+                    RLC:OnHistoryRowClick(self)
+                end
+            </OnClick>
+            <OnEnter>
+                if RLC and RLC.OnHistoryRowEnter then
+                    RLC:OnHistoryRowEnter(self)
+                end
+            </OnEnter>
+            <OnLeave>
+                GameTooltip:Hide()
+            </OnLeave>
+        </Scripts>
+    </Button>
+
     <!-- Loot Selection Frame -->
     <Frame name="RLCLootSelectionFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent" frameStrata="DIALOG">
         <Size x="800" y="400"/>
@@ -330,16 +360,16 @@
                 </Scripts>
             </Button>
 
-            <ScrollFrame name="RLCLootSelectionScrollFrame" inherits="UIPanelScrollFrameTemplate">
+            <ScrollFrame name="RLCLootSelectionScrollFrame" inherits="FauxScrollFrameTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" x="20" y="-50"/>
                     <Anchor point="BOTTOMRIGHT" x="-40" y="50"/>
                 </Anchors>
-                <ScrollChild>
-                    <Frame name="RLCLootSelectionScrollChild">
-                        <Size x="760" y="1"/>
-                    </Frame>
-                </ScrollChild>
+                <Scripts>
+                    <OnVerticalScroll>
+                        FauxScrollFrame_OnVerticalScroll(self, offset, 25, function() if RLC then RLC:UpdateLootSelectionScroll() end end)
+                    </OnVerticalScroll>
+                </Scripts>
             </ScrollFrame>
         </Frames>
         <Scripts>
@@ -367,7 +397,7 @@
 
     <!-- Loot History Frame -->
     <Frame name="RaidLootCounterLootHistoryFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent" frameStrata="DIALOG">
-        <Size x="600" y="500"/>
+        <Size x="600" y="640"/>
         <Anchors>
             <Anchor point="CENTER"/>
         </Anchors>
@@ -398,41 +428,16 @@
                 </Anchors>
             </Button>
             
-            <ScrollFrame name="RLCLootHistoryScrollFrame" inherits="UIPanelScrollFrameTemplate">
+            <ScrollFrame name="RLCLootHistoryScrollFrame" inherits="FauxScrollFrameTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" x="20" y="-50"/>
                     <Anchor point="BOTTOMRIGHT" x="-40" y="20"/>
                 </Anchors>
-                <ScrollChild>
-                    <Frame name="RLCLootHistoryScrollChild">
-                        <Size x="540" y="1"/>
-                        <Frames>
-                            <SimpleHTML name="RLCLootHistoryText">
-                                <Size x="540" y="100"/>
-                                <Anchors>
-                                    <Anchor point="TOPLEFT" x="0" y="0"/>
-                                    <Anchor point="TOPRIGHT" x="0" y="0"/>
-                                </Anchors>
-                                <FontString inherits="GameFontHighlight" justifyH="LEFT" justifyV="TOP" nonspacewrap="true"/>
-                                <Scripts>
-                                    <OnHyperlinkClick>
-                                        if RLC and RLC.OnHistoryHyperlinkClick then
-                                            RLC:OnHistoryHyperlinkClick(self, link, text, button)
-                                        end
-                                    </OnHyperlinkClick>
-                                    <OnHyperlinkEnter>
-                                        if RLC and RLC.OnHistoryHyperlinkEnter then
-                                            RLC:OnHistoryHyperlinkEnter(self, link, text)
-                                        end
-                                    </OnHyperlinkEnter>
-                                    <OnHyperlinkLeave>
-                                        GameTooltip:Hide()
-                                    </OnHyperlinkLeave>
-                                </Scripts>
-                            </SimpleHTML>
-                        </Frames>
-                    </Frame>
-                </ScrollChild>
+                <Scripts>
+                    <OnVerticalScroll>
+                        FauxScrollFrame_OnVerticalScroll(self, offset, 16, function() if RLC then RLC:UpdateLootHistoryScroll() end end)
+                    </OnVerticalScroll>
+                </Scripts>
             </ScrollFrame>
         </Frames>
         <Scripts>

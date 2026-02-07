@@ -104,7 +104,8 @@ local function OnLootOpened()
                 table.insert(lootData.loot, {
                     link = lootLink,
                     holder = nil,
-                    type = "UNASSIGN"
+                    type = "UNASSIGN",
+                    isBOE = ns.IsItemBOE(lootLink)
                 })
                 hasValidLoot = true
             end

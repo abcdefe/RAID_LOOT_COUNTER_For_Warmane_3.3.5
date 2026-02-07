@@ -1,28 +1,58 @@
 # Raid Loot Counter (WoW 3.3.5a)
 
-A simple, robust addon for tracking loot distribution in raids. Designed for Warmane (WotLK 3.3.5a).
+A robust addon for tracking loot distribution in raids, designed for Warmane (WotLK 3.3.5a).
 
 ## Features
 
 - **Raid Member Sync**: Automatically populates the list from the current raid roster, grouped by class.
-- **Loot Tracking**: +/- buttons to track items received per player.
+- **Loot Tracking**: Track Main Spec (MS) and Off Spec (OS) loot counts per player.
+- **Loot History**: 
+  - Automatically records all boss kills and dropped items.
+  - Displays drop times, item links, and assignments.
+  - **Smart Detection**: Identifies Tier Tokens (T7-T10) and Bind-on-Equip (BOE) items.
+  - **Class Colors**: Player names in history are colored by their class.
+- **Loot Assignment System**:
+  - Assign specific items to players directly from the drop list.
+  - Support for "Roll" management linked to specific items.
 - **Auto Announce**: (Optional) Automatically sends a Raid Warning whenever a player receives an item.
-    - Format: `{Name} - 新增 1 - 总数: {Total}`
-- **Roll Capture**: Captures `/roll` results from chat, sorts them by value, and identifies the winner. Supports both English and Chinese clients.
-- **Double Column UI**: Efficient use of screen space for 25-man raids.
-- **Persistence**: Data is saved between sessions.
-- **Localization**: Supports enUS, zhCN (Simplified Chinese), and zhTW (Traditional Chinese).
+- **Roll Capture**: 
+  - Captures `/roll` results from chat.
+  - Sorts by value and identifies the winner.
+  - Supports both English and Chinese clients.
+- **Performance**: Uses virtual scrolling (FauxScrollFrame) to handle unlimited history and loot lists without performance impact.
+- **Localization**: Fully localized for enUS, zhCN, and zhTW.
 
 ## Usage
 
+### Basic Controls
 1. **Open Window**: Type `/rlc` or `/raidlootcounter`.
 2. **Sync**: Click "Sync Raid" to load current raid members.
-3. **Track**: Click `+` when a player wins an item.
-    - If "Auto Announce" is checked, a raid warning is sent instantly.
-4. **Rolls**: 
-    - Click "Start Roll Capture" before asking for rolls.
-    - Click "Stop Roll Capture" after rolls are done. The winner and all rolls will be printed to your chat window.
-5. **Report**: Click "Send Stats" to broadcast the full loot table to Raid Warning channel at the end of the raid.
+3. **Report**: Click "Send Stats" to broadcast the full loot table to Raid Warning channel.
+
+### Assigning Loot
+1. Click the `+` button next to a player's name.
+2. A window will appear listing recent unassigned loot.
+3. Select an item (items are sorted chronologically).
+   - **[Tier]** and **[BOE]** tags are displayed for relevant items.
+4. Click **MS Save** (Main Spec) or **OS Save** (Off Spec).
+5. The item is assigned to the player, and the count is updated.
+
+### Removing Loot
+1. Click the `-` button next to a player's name.
+2. Select the item you want to remove from their history.
+3. Click **Remove**.
+
+### Rolling for Loot
+1. Click **Start Roll Capture**.
+2. Optionally, select an item from the list to associate the roll with it.
+3. Ask raid members to roll.
+4. Click **Stop Roll Capture** to announce the winner and results.
+
+### Loot History
+- Click **View Loot** to open the history window.
+- View all drops organized by Instance and Boss.
+- **Shift+Click** an item to link it in chat.
+- Hover to see item details.
 
 ## Installation
 
@@ -35,9 +65,3 @@ A simple, robust addon for tracking loot distribution in raids. Designed for War
 This addon is optimized for players using Chinese clients (zhCN) on English servers (like Warmane).
 - **UI**: Localized to your client language.
 - **Chat Capture**: Supports both "Name rolls..." (English) and "Name掷出..." (Chinese) formats.
-- **Broadcasts**: Uses bilingual or clear formats suitable for international groups.
-
-## Troubleshooting
-
-- **Regex Issues**: If roll capture fails, ensure you are using the latest version with updated regex patterns for Chinese clients.
-- **Checkbox Reset**: The "Auto Announce" setting is preserved across sessions and is NOT cleared when clicking "Clear Data".
