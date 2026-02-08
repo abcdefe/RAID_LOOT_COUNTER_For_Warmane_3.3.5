@@ -1005,6 +1005,29 @@ function RLC:OnStopRollCaptureClick()
     print("|cff00ff00[RaidLootCounter]|r " .. L["ROLL_CAPTURE_STOPPED"])
 end
 
+function RLC:OnMinimizeClick()
+    if RaidLootCounterFrame then
+        RaidLootCounterFrame:Hide()
+    end
+    if RLCLootSelectionFrame then
+        RLCLootSelectionFrame:Hide()
+    end
+    if RLC_PinFrame then
+        RLC_PinFrame:Show()
+    end
+end
+
+function RLC:OnMaximizeClick()
+    if RLC_PinFrame then
+        RLC_PinFrame:Hide()
+    end
+    if RaidLootCounterFrame then
+        RaidLootCounterFrame:Show()
+        RaidLootCounterFrame:ClearAllPoints()
+        RaidLootCounterFrame:SetPoint("CENTER")
+    end
+end
+
 function RLC:OnViewLootClick()
     if RaidLootCounterLootHistoryFrame:IsShown() then
         RaidLootCounterLootHistoryFrame:Hide()
