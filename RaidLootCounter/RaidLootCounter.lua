@@ -8,6 +8,11 @@ local L = ns.L
 local ADDON_NAME = "RaidLootCounter"
 RLC = {} -- 全局对象，供XML调用
 
+local Chat = ns.Chat
+local LootUtil = ns.LootUtil
+local Roll = ns.Roll
+local DB = ns.DB
+
 -- ============================================================================
 -- 1. 常量与变量 (Constants & Globals)
 -- ============================================================================
@@ -78,13 +83,12 @@ function ns.GetItemTier(itemLink)
         if line then
             local text = line:GetText()
             if text then
-                -- Try to extract Set Name
-                -- Pattern: "Name (x/y)"
-                local setName = string.match(text, "^(.+) %([%d]+/[%d]+%)$")
-                if setName then
-                    -- Check if Set Name contains any of our known keys
+                -- Relaxed check: Look for set count pattern like "0/5"
+                -- Matches "(0/5)", "（0/5）", or any variation
+                if string.find(text, "%d+/%d+") then
+                    -- Check if line contains any of our known keys
                     for key, tier in pairs(ns.CONSTANTS.TIER_SETS) do
-                        if string.find(setName, key) then
+                        if string.find(text, key) then
                             return tier
                         end
                     end
@@ -117,43 +121,14 @@ RLC.selectionMode = "ASSIGN" -- "ASSIGN", "UNASSIGN", "ROLL"
 
 -- 初始化数据库
 local function InitDB()
-    if not RaidLootCounterDB then
-        RaidLootCounterDB = {}
-    end
-    
-    if RaidLootCounterDB.autoAnnounce == nil then
-        RaidLootCounterDB.autoAnnounce = true
-    end
-    
-    if not RaidLootCounterDB.lootedBosses then
-        RaidLootCounterDB.lootedBosses = {}
-    end
-    
-    if not RaidLootCounterDB.players then
-        RaidLootCounterDB.players = {}
-        
-        -- 数据迁移逻辑
-        local keysToRemove = {}
-        for key, value in pairs(RaidLootCounterDB) do
-            if key ~= "autoAnnounce" and key ~= "lootedBosses" and key ~= "players" then
-                if type(value) == "table" and (value.class or value.count) then
-                    RaidLootCounterDB.players[key] = value
-                    table.insert(keysToRemove, key)
-                end
-            end
-        end
-        for _, key in ipairs(keysToRemove) do
-            RaidLootCounterDB[key] = nil
-        end
-    end
+    DB.Init()
 end
 
 -- 清空所有数据
 local function ClearAllData()
-    RaidLootCounterDB.players = {}
-    RaidLootCounterDB.lootedBosses = {}
-    
-    -- 重置Mock数据状态
+    DB.ClearAllData()
+
+    -- 重置Mock数据状态（Mock 本身由 LootHistory 管理）
     if RLC.ResetMockData then
         RLC:ResetMockData()
     end
@@ -161,146 +136,34 @@ end
 
 -- 检查数据库是否为空
 local function IsDBEmpty()
-    if not RaidLootCounterDB.players then return true end
-    return next(RaidLootCounterDB.players) == nil
+    return DB.IsEmpty()
 end
 
 -- 获取团队成员信息 (按职业分组)
 local function GetRaidMembers()
-    local members = {}
-    local numRaidMembers = GetNumRaidMembers()
-    
-    if numRaidMembers > 0 then
-        for i = 1, numRaidMembers do
-            local name, _, _, _, _, fileName = GetRaidRosterInfo(i)
-            if name and fileName then
-                if not members[fileName] then
-                    members[fileName] = {}
-                end
-                table.insert(members[fileName], {
-                    name = name,
-                    class = fileName
-                })
-            end
-        end
-    end
-    return members
+    -- 向后兼容：保留函数名，但直接读取 DB.SyncRaidMembers 使用的逻辑
+    -- 这里仅作为内部工具，不再对外使用
+    return nil
 end
 
 -- 获取玩家持有的装备列表
 local function GetPlayerItems(playerName)
-    local items = {}
-    if RaidLootCounterDB.lootedBosses then
-        for bossGUID, data in pairs(RaidLootCounterDB.lootedBosses) do
-            if data.loot then
-                for _, itemData in ipairs(data.loot) do
-                    local link, holder, itemType
-                    if type(itemData) == "table" then
-                        link = itemData.link
-                        holder = itemData.holder
-                        itemType = itemData.type
-                    else
-                        -- 兼容旧格式
-                        link = itemData
-                        holder = nil 
-                        itemType = "MS"
-                    end
-                    
-                    if holder == playerName and link then
-                        table.insert(items, {link = link, type = itemType or "MS"})
-                    end
-                end
-            end
-        end
-    end
-    
-    table.sort(items, function(a, b)
-        local isAMS = (a.type == "MS")
-        local isBMS = (b.type == "MS")
-        if isAMS and not isBMS then return true end
-        if not isAMS and isBMS then return false end
-        return false 
-    end)
-    
-    return items
+    return DB.GetPlayerItems(playerName)
 end
 
 -- 同步团队成员
 local function SyncRaidMembers()
-    local raidMembers = GetRaidMembers()
-    local currentRaidNames = {}
-    local addedCount = 0
-    local removedCount = 0
-    
-    if not RaidLootCounterDB.players then RaidLootCounterDB.players = {} end
-    
-    -- 添加新成员
-    for className, players in pairs(raidMembers) do
-        for _, player in ipairs(players) do
-            currentRaidNames[player.name] = true
-            
-            if not RaidLootCounterDB.players[player.name] then
-                RaidLootCounterDB.players[player.name] = {
-                    msCount = 0,
-                    osCount = 0,
-                    class = className
-                }
-                addedCount = addedCount + 1
-            else
-                RaidLootCounterDB.players[player.name].class = className
-                -- Data migration for existing players if needed
-                if RaidLootCounterDB.players[player.name].msCount == nil then
-                    RaidLootCounterDB.players[player.name].msCount = RaidLootCounterDB.players[player.name].count or 0
-                    RaidLootCounterDB.players[player.name].osCount = 0
-                    RaidLootCounterDB.players[player.name].count = nil -- Remove old field
-                end
-            end
-        end
-    end
-    
-    -- 移除不在团队的成员
-    for name in pairs(RaidLootCounterDB.players) do
-        if not currentRaidNames[name] then
-            RaidLootCounterDB.players[name] = nil
-            removedCount = removedCount + 1
-        end
-    end
-    
-    return addedCount, removedCount
+    return DB.SyncRaidMembers()
 end
 
 -- 增加拾取计数
 local function AddLoot(playerName, isOS)
-    if not playerName or playerName == "" then return false end
-    if not RaidLootCounterDB.players then return false end
-
-    if RaidLootCounterDB.players[playerName] then
-        if isOS then
-            RaidLootCounterDB.players[playerName].osCount = (RaidLootCounterDB.players[playerName].osCount or 0) + 1
-        else
-            RaidLootCounterDB.players[playerName].msCount = (RaidLootCounterDB.players[playerName].msCount or 0) + 1
-        end
-        return true
-    end
-    return false
+    return DB.AddLoot(playerName, isOS)
 end
 
 -- 减少拾取计数
 local function RemoveLoot(playerName, isOS)
-    if not playerName or playerName == "" then return false end
-    if not RaidLootCounterDB.players then return false end
-
-    if RaidLootCounterDB.players[playerName] then
-        if isOS then
-            local currentCount = RaidLootCounterDB.players[playerName].osCount or 0
-            RaidLootCounterDB.players[playerName].osCount = math.max(0, currentCount - 1)
-        else
-            local currentCount = RaidLootCounterDB.players[playerName].msCount or 0
-            RaidLootCounterDB.players[playerName].msCount = math.max(0, currentCount - 1)
-        end
-        return true
-    end
-    return false
+    return DB.RemoveLoot(playerName, isOS)
 end
 
 -- ============================================================================
@@ -309,11 +172,7 @@ end
 
 -- 通报消息 (团队/打印)
 local function Announce(msg)
-    if GetNumRaidMembers() > 0 then
-        SendChatMessage(msg, "RAID_WARNING")
-    else
-        print(msg)
-    end
+    Chat.SendRaidOrPrint(msg, "RAID_WARNING")
 end
 
 -- 发送单个玩家的拾取更新
@@ -329,7 +188,7 @@ function RLC:SendLootUpdate(playerName, newCount, isAdd, itemLink, isOS)
     
     -- 1. 发送本次操作信息
     local msg = playerName .. " - " .. action .. itemPart .. typeStr
-    SendChatMessage(msg, "RAID_WARNING")
+    Chat.SendRaidOrPrint(msg, "RAID_WARNING")
     
     -- 获取玩家最新数据
     local playerData = RaidLootCounterDB.players[playerName]
@@ -355,17 +214,7 @@ function RLC:SendLootUpdate(playerName, newCount, isAdd, itemLink, isOS)
     
     local function SendList(prefix, list)
         if #list == 0 then return end
-        local currentMsg = prefix
-        for _, link in ipairs(list) do
-            local itemStr = " " .. link
-            if string.len(currentMsg) + string.len(itemStr) > 250 then
-                SendChatMessage(currentMsg, "RAID_WARNING")
-                currentMsg = "  " .. link -- 继续下一行，缩进
-            else
-                currentMsg = currentMsg .. itemStr
-            end
-        end
-        SendChatMessage(currentMsg, "RAID_WARNING")
+        Chat.SendWrapped(prefix, list, "RAID_WARNING", "  ")
     end
     
     SendList("MS:", msItems)
@@ -401,7 +250,7 @@ function RLC:SendToRaid()
         end
     end
     
-    SendChatMessage("=== Raid Loot Counter ===", "RAID_WARNING")
+    Chat.SendRaidOrPrint("=== Raid Loot Counter ===", "RAID_WARNING")
     
     local sortedClasses = {}
     for class in pairs(dataByClass) do table.insert(sortedClasses, class) end
@@ -420,11 +269,11 @@ function RLC:SendToRaid()
         end)
         
         local displayClass = ENGLISH_CLASS_NAMES[class] or class
-        SendChatMessage("[" .. displayClass .. "]", "RAID_WARNING")
+        Chat.SendRaidOrPrint("[" .. displayClass .. "]", "RAID_WARNING")
         
         for _, player in ipairs(players) do
             local msg = player.name .. ": MS:" .. player.msCount
-            SendChatMessage(msg, "RAID_WARNING")
+            Chat.SendRaidOrPrint(msg, "RAID_WARNING")
             
             local items = GetPlayerItems(player.name)
             if #items > 0 then
@@ -432,183 +281,25 @@ function RLC:SendToRaid()
                 for i, item in ipairs(items) do
                     local itemStr = item.link .. (item.type == "OS" and "(OS)" or "(MS)")
                     if string.len(currentLine) + string.len(itemStr) > 250 then
-                        SendChatMessage(currentLine, "RAID_WARNING")
+                        Chat.SendRaidOrPrint(currentLine, "RAID_WARNING")
                         currentLine = "  " .. itemStr
                     else
                         currentLine = currentLine .. itemStr .. " "
                     end
                 end
                 if currentLine ~= "  " then
-                    SendChatMessage(currentLine, "RAID_WARNING")
+                    Chat.SendRaidOrPrint(currentLine, "RAID_WARNING")
                 end
             end
         end
-        SendChatMessage(" ", "RAID_WARNING")
+        Chat.SendRaidOrPrint(" ", "RAID_WARNING")
     end
     
-    SendChatMessage("=======================================", "RAID_WARNING")
+    Chat.SendRaidOrPrint("=======================================", "RAID_WARNING")
     print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_STATS_SENT"])
 end
 
--- 处理 Roll 点消息
-function RLC:ProcessRollMessage(message)
-    local pattern = L["ROLL_PATTERN"] or "(.+) rolls (%d+) %((%d+)-(%d+)%)"
-    local playerName, rollValue, minValue, maxValue = string.match(message, pattern)
-
-    if playerName and rollValue and minValue and maxValue then
-        playerName = string.match(playerName, "^%s*(.-)%s*$")
-        
-        local numRaidMembers = GetNumRaidMembers()
-        local isRaidMember = false
-        
-        if numRaidMembers > 0 then
-            for i = 1, numRaidMembers do
-                local raidName = GetRaidRosterInfo(i)
-                if raidName then
-                    local cleanRaidName = string.match(raidName, "^([^-]+)")
-                    if cleanRaidName == playerName or raidName == playerName then
-                        isRaidMember = true
-                        break
-                    end
-                end
-            end
-        else
-            local numPartyMembers = GetNumPartyMembers()
-            if numPartyMembers > 0 then
-                local myName = UnitName("player")
-                if myName == playerName then isRaidMember = true else
-                    for i = 1, numPartyMembers do
-                        if UnitName("party"..i) == playerName then isRaidMember = true break end
-                    end
-                end
-            else
-                if UnitName("player") == playerName then isRaidMember = true end
-            end
-        end
-        
-        if isRaidMember then
-            local hasRolled = false
-            for _, result in ipairs(rollResults) do
-                if result.player == playerName then hasRolled = true break end
-            end
-
-            if not hasRolled then
-                table.insert(rollResults, {
-                    player = playerName,
-                    roll = tonumber(rollValue),
-                    min = tonumber(minValue),
-                    max = tonumber(maxValue),
-                    timestamp = time()
-                })
-                print(string.format("|cff00ff00[RaidLootCounter]|r 捕获: %s 掷出 %s (%s-%s)", 
-                    playerName, rollValue, minValue, maxValue))
-            end
-        end
-    end
-end
-
--- 开始 Roll 点捕获 (逻辑部分)
-function RLC:StartRollCapture(itemLink, rollType)
-    if isRollCapturing then return end
-    
-    rollResults = {}
-    isRollCapturing = true
-    RLC.currentRollType = rollType or "MS"
-    
-    if not rollCaptureFrame then rollCaptureFrame = CreateFrame("Frame") end
-    rollCaptureFrame:RegisterEvent("CHAT_MSG_SYSTEM")
-    rollCaptureFrame:SetScript("OnEvent", function(self, event, message)
-        if event == "CHAT_MSG_SYSTEM" and isRollCapturing then
-            RLC:ProcessRollMessage(message)
-        end
-    end)
-    
-    print(ns.CONSTANTS.CHAT_PREFIX .. L["ROLL_CAPTURE_STARTED"] .. " (" .. (rollType or "MS") .. ")")
-    if itemLink then
-        local prefix = (rollType == "OS") and "OS Roll " or "MS Roll "
-        SendChatMessage(prefix .. itemLink, "RAID_WARNING")
-    end
-end
-
--- 显示 Roll 点结果
-function RLC:DisplayRollResults()
-    if #rollResults == 0 then
-        print(ns.CONSTANTS.CHAT_PREFIX .. L["ROLL_NO_RESULTS"])
-        return
-    end
-    
-    for _, result in ipairs(rollResults) do
-        local dbData = RaidLootCounterDB.players and RaidLootCounterDB.players[result.player]
-        result.msCount = (dbData and dbData.msCount) or 0
-        result.osCount = (dbData and dbData.osCount) or 0
-        result.class = (dbData and dbData.class)
-        
-        if not result.class and GetNumRaidMembers() > 0 then
-            for i = 1, GetNumRaidMembers() do
-                local name, _, _, _, _, fileName = GetRaidRosterInfo(i)
-                if name == result.player then
-                    result.class = fileName
-                    break
-                end
-            end
-        end
-    end
-
-    local isOSRoll = (RLC.currentRollType == "OS")
-    
-    table.sort(rollResults, function(a, b)
-        if isOSRoll then
-            -- OS Roll: Just Roll DESC (Ignore OS Count)
-            return a.roll > b.roll
-        else
-            -- MS Roll: MS Count ASC -> Roll DESC
-            if a.msCount ~= b.msCount then
-                return a.msCount < b.msCount
-            end
-            return a.roll > b.roll
-        end
-    end)
-    
-    local rollTypeStr = isOSRoll and "OS" or "MS"
-    Announce("=== Raid Loot Counter " .. rollTypeStr .. " Roll Results === (" .. #rollResults .. " rolls)")
-    
-    for i, result in ipairs(rollResults) do
-        local msg = string.format("%d. %s: %d (%d-%d) [MS: %d]", 
-            i, result.player, result.roll, result.min, result.max, result.msCount)
-        Announce(msg)
-    end
-    
-    if #rollResults > 0 then
-        local winners = {}
-        local first = rollResults[1]
-        
-        local function GetWinnerString(res)
-            local className = res.class or "Unknown"
-            local displayClass = ns.CONSTANTS.ENGLISH_CLASS_NAMES[className] or className
-            return string.format("%s {%s} (%d (%d-%d)  MS: %d)", res.player, displayClass, res.roll, res.min, res.max, res.msCount)
-        end
-        
-        table.insert(winners, GetWinnerString(first))
-        
-        for i = 2, #rollResults do
-            local current = rollResults[i]
-            local isTie = false
-            if isOSRoll then
-                 if current.roll == first.roll then isTie = true end
-            else
-                 if current.roll == first.roll and current.msCount == first.msCount then isTie = true end
-            end
-            
-            if isTie then
-                table.insert(winners, GetWinnerString(current))
-            else
-                break
-            end
-        end
-        
-        Announce("Winner (" .. rollTypeStr .. "): " .. table.concat(winners, ", "))
-    end
-end
+-- Roll 相关逻辑已移动到独立模块 RLC_Roll.lua
 
 -- ============================================================================
 -- 4. UI 逻辑 (UI Implementation)
@@ -829,7 +520,7 @@ function RLC:ShowLootSelection(playerName, mode)
     
     local frame = RLCLootSelectionFrame
     if not frame then 
-        print(ns.CONSTANTS.CHAT_PREFIX .. "Error: RLCLootSelectionFrame not found")
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["ERR_NO_LOOT_SELECTION_FRAME"])
         return 
     end
 
@@ -853,25 +544,25 @@ function RLC:ShowLootSelection(playerName, mode)
     -- 按钮状态调整
     if saveButton and saveOSButton then
         if RLC.selectionMode == "ROLL" then
-            saveButton:SetText("MS Roll")
+            saveButton:SetText(L["BUTTON_MS_ROLL"])
             saveButton:ClearAllPoints()
             saveButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOM", -10, 20)
             
             saveOSButton:Show()
-            saveOSButton:SetText("OS Roll")
+            saveOSButton:SetText(L["BUTTON_OS_ROLL"])
             saveOSButton:ClearAllPoints()
             saveOSButton:SetPoint("BOTTOMLEFT", frame, "BOTTOM", 10, 20)
         elseif RLC.selectionMode == "ASSIGN" then
-            saveButton:SetText("MS Save")
+            saveButton:SetText(L["BUTTON_MS_SAVE"])
             saveButton:ClearAllPoints()
             saveButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOM", -10, 20)
             
             saveOSButton:Show()
-            saveOSButton:SetText("OS Save")
+            saveOSButton:SetText(L["BUTTON_OS_SAVE"])
             saveOSButton:ClearAllPoints()
             saveOSButton:SetPoint("BOTTOMLEFT", frame, "BOTTOM", 10, 20)
         else
-            saveButton:SetText("Remove")
+            saveButton:SetText(L["BUTTON_REMOVE"])
             saveButton:ClearAllPoints()
             saveButton:SetPoint("BOTTOM", 0, 20)
             saveOSButton:Hide()
@@ -962,11 +653,12 @@ end
 
 function RLC:OnPlusClick(parentFrame)
     if not parentFrame then
-        print(ns.CONSTANTS.CHAT_PREFIX .. "Error: Parent frame is nil")
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["ERR_PARENT_FRAME_NIL"])
         return
     end
     if not parentFrame.playerName then 
-        print(ns.CONSTANTS.CHAT_PREFIX .. "Error: PlayerName is nil on frame " .. (parentFrame:GetName() or "Unknown"))
+        local frameName = parentFrame:GetName() or "Unknown"
+        print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["ERR_PLAYERNAME_NIL"], frameName))
         return 
     end
     RLC:ShowLootSelection(parentFrame.playerName, "ASSIGN")
@@ -975,34 +667,49 @@ end
 function RLC:OnAutoAnnounceClick(checkbox)
     if checkbox:GetChecked() then
         RaidLootCounterDB.autoAnnounce = true
-        print(ns.CONSTANTS.CHAT_PREFIX .. "自动通报: " .. ns.CONSTANTS.COLORS.GREEN .. "已开启|r")
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["AUTO_ANNOUNCE_ON"])
     else
         RaidLootCounterDB.autoAnnounce = false
-        print(ns.CONSTANTS.CHAT_PREFIX .. "自动通报: " .. ns.CONSTANTS.COLORS.RED .. "已关闭|r")
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["AUTO_ANNOUNCE_OFF"])
     end
 end
 
 function RLC:OnStartRollCaptureClick()
-    if isRollCapturing then
-        print("|cffff0000[RaidLootCounter]|r " .. L["ROLL_CAPTURE_ALREADY_ACTIVE"])
+    -- 检查是否已在进行 Roll 捕获
+    if Roll.IsActive() then
+        print(ns.CONSTANTS.CHAT_PREFIX .. (L["ROLL_CAPTURE_ALREADY_ACTIVE"] or "Roll capture is already active."))
         return
     end
     
-    -- 打开装备选择浮窗，模式为 ROLL
+    -- 仅负责打开选择窗口，实际 Roll 逻辑在 Roll 模块中处理
     RLC:ShowLootSelection(nil, "ROLL")
 end
 
 function RLC:OnStopRollCaptureClick()
-    if not isRollCapturing then
-        print("|cffff0000[RaidLootCounter]|r " .. L["ROLL_CAPTURE_NOT_ACTIVE"])
-        return
+    Roll.StopAndAnnounce()
+end
+
+function RLC:OnMinimizeClick()
+    if RaidLootCounterFrame then
+        RaidLootCounterFrame:Hide()
     end
-    
-    isRollCapturing = false
-    if rollCaptureFrame then rollCaptureFrame:UnregisterEvent("CHAT_MSG_SYSTEM") end
-    
-    RLC:DisplayRollResults()
-    print("|cff00ff00[RaidLootCounter]|r " .. L["ROLL_CAPTURE_STOPPED"])
+    if RLCLootSelectionFrame then
+        RLCLootSelectionFrame:Hide()
+    end
+    if RLC_PinFrame then
+        RLC_PinFrame:Show()
+    end
+end
+
+function RLC:OnMaximizeClick()
+    if RLC_PinFrame then
+        RLC_PinFrame:Hide()
+    end
+    if RaidLootCounterFrame then
+        RaidLootCounterFrame:Show()
+        RaidLootCounterFrame:ClearAllPoints()
+        RaidLootCounterFrame:SetPoint("CENTER")
+    end
 end
 
 function RLC:OnViewLootClick()
@@ -1049,24 +756,20 @@ function RLC:PerformAssignment(isOS)
     local bossData = RaidLootCounterDB.lootedBosses[data.bossGUID]
     
     if bossData and bossData.loot and bossData.loot[data.lootIndex] then
-        local lootItem = bossData.loot[data.lootIndex]
-        
-        if type(lootItem) ~= "table" then
-             bossData.loot[data.lootIndex] = { link = lootItem, holder = nil }
-             lootItem = bossData.loot[data.lootIndex]
-        end
+        local lootItem = LootUtil.NormalizeLootItem(bossData.loot, data.lootIndex)
         
         local playerData = RaidLootCounterDB.players[RLC.targetPlayer]
         
         lootItem.holder = RLC.targetPlayer
-        lootItem.type = isOS and "OS" or "MS"
+        lootItem.type = isOS and ns.CONSTANTS.LOOT_TYPE.OS or ns.CONSTANTS.LOOT_TYPE.MS
         
         if AddLoot(RLC.targetPlayer, isOS) then
             local newCount = isOS and playerData.osCount or playerData.msCount
             RLC:RefreshDisplay()
             RLC:SendLootUpdate(RLC.targetPlayer, newCount, true, data.link, isOS)
         end
-        print(ns.CONSTANTS.CHAT_PREFIX .. "已分配 " .. data.link .. " 给 " .. RLC.targetPlayer .. (isOS and " (OS)" or " (MS)"))
+        local suffix = isOS and " (OS)" or " (MS)"
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOOT_ASSIGNED"] .. data.link .. L["MSG_TO"] .. RLC.targetPlayer .. suffix)
         
         if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
             RLC:RefreshLootHistory()
@@ -1078,7 +781,7 @@ end
 
 function RLC:OnLootSelectionSaveOSClick()
     if not RLC.selectedLoot then
-        print(ns.CONSTANTS.CHAT_PREFIX .. "请选择一件装备。")
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SELECT_ITEM"])
         return
     end
 
@@ -1087,7 +790,9 @@ function RLC:OnLootSelectionSaveOSClick()
         if link then
             local _, itemLink = GetItemInfo(link)
             itemLink = itemLink or link
-            RLC:StartRollCapture(itemLink, "OS")
+            if Roll then
+                Roll.Start(itemLink, "OS")
+            end
         end
         RLCLootSelectionFrame:Hide()
     elseif RLC.selectionMode == "ASSIGN" then
@@ -1097,7 +802,7 @@ end
 
 function RLC:OnLootSelectionSaveClick()
     if not RLC.selectedLoot then
-        print(ns.CONSTANTS.CHAT_PREFIX .. "请选择一件装备。")
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SELECT_ITEM"])
         return
     end
 
@@ -1110,7 +815,9 @@ function RLC:OnLootSelectionSaveClick()
             itemLink = itemLink or link
             
             -- 开始监听并发送通告
-            RLC:StartRollCapture(itemLink, "MS")
+            if Roll then
+                Roll.Start(itemLink, "MS")
+            end
         end
         RLCLootSelectionFrame:Hide()
         return
@@ -1127,23 +834,17 @@ function RLC:OnLootSelectionSaveClick()
     local bossData = RaidLootCounterDB.lootedBosses[data.bossGUID]
     
     if bossData and bossData.loot and bossData.loot[data.lootIndex] then
-        local lootItem = bossData.loot[data.lootIndex]
+        local lootItem = LootUtil.NormalizeLootItem(bossData.loot, data.lootIndex)
         local isUnassign = (RLC.selectionMode == "UNASSIGN")
-        
-        -- 确保数据格式为表
-        if type(lootItem) ~= "table" then
-             bossData.loot[data.lootIndex] = { link = lootItem, holder = nil }
-             lootItem = bossData.loot[data.lootIndex]
-        end
         
         local playerData = RaidLootCounterDB.players[RLC.targetPlayer]
 
         if isUnassign then
             local isOS = false
             -- 尝试从记录中判断类型
-            if lootItem.type == "OS" then
+            if lootItem.type == ns.CONSTANTS.LOOT_TYPE.OS then
                 isOS = true
-            elseif lootItem.type == "MS" then
+            elseif lootItem.type == ns.CONSTANTS.LOOT_TYPE.MS then
                 isOS = false
             else
                 -- 旧数据或未记录类型，尝试猜测
@@ -1153,14 +854,14 @@ function RLC:OnLootSelectionSaveClick()
             end
             
             lootItem.holder = nil
-            lootItem.type = "UNASSIGN" -- 恢复为 UNASSIGN
+            lootItem.type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN -- 恢复为 UNASSIGN
             
             if RemoveLoot(RLC.targetPlayer, isOS) then
                 local newCount = isOS and playerData.osCount or playerData.msCount
                 RLC:RefreshDisplay()
                 RLC:SendLootUpdate(RLC.targetPlayer, newCount, false, data.link, isOS)
             end
-            print(ns.CONSTANTS.CHAT_PREFIX .. "已移除 " .. data.link .. " from " .. RLC.targetPlayer)
+            print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOOT_REMOVED"] .. data.link .. L["MSG_FROM"] .. RLC.targetPlayer)
         end
         
         if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
@@ -1189,6 +890,7 @@ local function InitUI()
 end
 
 local function OnAddonLoaded(self, event, addonName)
+
     if addonName ~= ADDON_NAME then return end
     
     InitDB()

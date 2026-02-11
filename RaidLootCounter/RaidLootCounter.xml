@@ -108,6 +108,20 @@
                 </Anchors>
             </Button>
             
+            <Button name="$parentMinimizeButton" inherits="UIPanelButtonTemplate" text="-">
+                <Size x="20" y="20"/>
+                <Anchors>
+                    <Anchor point="RIGHT" relativeTo="$parentCloseButton" relativePoint="LEFT" x="-2" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnMinimizeClick then
+                            RLC:OnMinimizeClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+            
             <Button name="$parentSyncButton" inherits="GameMenuButtonTemplate" text="Sync Raid">
                 <Size x="100" y="25"/>
                 <Anchors>
@@ -225,6 +239,37 @@
             <OnDragStop>
                 self:StopMovingOrSizing();
             </OnDragStop>
+            <OnShow>
+                -- 确保窗口完全在屏幕内
+                local left = self:GetLeft()
+                local top = self:GetTop()
+                local width = self:GetWidth()
+                local height = self:GetHeight()
+                local screenWidth = GetScreenWidth()
+                local screenHeight = GetScreenHeight()
+
+                if left and top and width and height then
+                    local newLeft = left
+                    local newTop = top
+
+                    if newLeft &lt; 0 then
+                        newLeft = 0
+                    elseif (newLeft + width) &gt; screenWidth then
+                        newLeft = screenWidth - width
+                    end
+
+                    if newTop &gt; screenHeight then
+                        newTop = screenHeight
+                    elseif (newTop - height) &lt; 0 then
+                        newTop = height
+                    end
+                    
+                    if newLeft ~= left or newTop ~= top then
+                        self:ClearAllPoints()
+                        self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", newLeft, newTop)
+                    end
+                end
+            </OnShow>
         </Scripts>
     </Frame>
 
@@ -298,6 +343,8 @@
             </OnLeave>
         </Scripts>
     </Button>
+
+
 
     <!-- Loot Selection Frame -->
     <Frame name="RLCLootSelectionFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent" frameStrata="DIALOG">
@@ -428,6 +475,20 @@
                 </Anchors>
             </Button>
             
+            <Button name="$parentManualAddButton" inherits="UIPanelButtonTemplate" text="Manual Add">
+                <Size x="100" y="22"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" relativeTo="$parentTitle" relativePoint="TOPRIGHT" x="120" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnManualAddClick then
+                            RLC:OnManualAddClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
             <ScrollFrame name="RLCLootHistoryScrollFrame" inherits="FauxScrollFrameTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" x="20" y="-50"/>
@@ -453,6 +514,175 @@
             <OnShow>
                 if RaidLootCounterFrameMask then
                     RaidLootCounterFrameMask:Show()
+                end
+            </OnShow>
+            <OnHide>
+                if RaidLootCounterFrameMask then
+                    RaidLootCounterFrameMask:Hide()
+                end
+            </OnHide>
+        </Scripts>
+    </Frame>
+
+    <!-- Pin Frame -->
+    <Frame name="RLC_PinFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent">
+        <Size x="150" y="40"/>
+        <Anchors>
+            <Anchor point="TOPRIGHT" x="-100" y="-100"/>
+        </Anchors>
+        <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+            <BackgroundInsets>
+                <AbsInset left="11" right="12" top="12" bottom="11"/>
+            </BackgroundInsets>
+            <TileSize>
+                <AbsValue val="32"/>
+            </TileSize>
+            <EdgeSize>
+                <AbsValue val="32"/>
+            </EdgeSize>
+        </Backdrop>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentTitle" inherits="GameFontNormal" text="RLC-PIN">
+                    <Anchors>
+                        <Anchor point="CENTER" x="-10" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button name="$parentMaximizeButton" inherits="UIPanelButtonTemplate" text="+">
+                <Size x="20" y="20"/>
+                <Anchors>
+                    <Anchor point="RIGHT" x="-10" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnMaximizeClick then
+                            RLC:OnMaximizeClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+        </Frames>
+        <Scripts>
+            <OnLoad>
+                self:RegisterForDrag("LeftButton");
+            </OnLoad>
+            <OnDragStart>
+                self:StartMoving();
+            </OnDragStart>
+            <OnDragStop>
+                self:StopMovingOrSizing();
+            </OnDragStop>
+            <OnShow>
+                -- 确保窗口完全在屏幕内
+                local left = self:GetLeft()
+                local top = self:GetTop()
+                local width = self:GetWidth()
+                local height = self:GetHeight()
+                local screenWidth = GetScreenWidth()
+                local screenHeight = GetScreenHeight()
+
+                if left and top and width and height then
+                    local newLeft = left
+                    local newTop = top
+
+                    if newLeft &lt; 0 then
+                        newLeft = 0
+                    elseif (newLeft + width) &gt; screenWidth then
+                        newLeft = screenWidth - width
+                    end
+
+                    if newTop &gt; screenHeight then
+                        newTop = screenHeight
+                    elseif (newTop - height) &lt; 0 then
+                        newTop = height
+                    end
+                    
+                    if newLeft ~= left or newTop ~= top then
+                        self:ClearAllPoints()
+                        self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", newLeft, newTop)
+                    end
+                end
+            </OnShow>
+        </Scripts>
+    </Frame>
+    <!-- Manual Add Frame -->
+    <Frame name="RLCManualAddFrame" toplevel="true" movable="true" enableMouse="true" hidden="true" parent="UIParent" frameStrata="DIALOG">
+        <Size x="800" y="400"/>
+        <Anchors>
+            <Anchor point="CENTER"/>
+        </Anchors>
+        <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+            <BackgroundInsets>
+                <AbsInset left="11" right="12" top="12" bottom="11"/>
+            </BackgroundInsets>
+            <TileSize>
+                <AbsValue val="32"/>
+            </TileSize>
+            <EdgeSize>
+                <AbsValue val="32"/>
+            </EdgeSize>
+        </Backdrop>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Manual Add Loot">
+                    <Anchors>
+                        <Anchor point="TOP" x="0" y="-20"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-5" y="-5"/>
+                </Anchors>
+            </Button>
+            
+            <ScrollFrame name="RLCManualAddScrollFrame" inherits="FauxScrollFrameTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="20" y="-50"/>
+                    <Anchor point="BOTTOMRIGHT" x="-40" y="50"/>
+                </Anchors>
+                <Scripts>
+                    <OnVerticalScroll>
+                        FauxScrollFrame_OnVerticalScroll(self, offset, 25, function() if RLC then RLC:UpdateManualAddScroll() end end)
+                    </OnVerticalScroll>
+                </Scripts>
+            </ScrollFrame>
+            
+            <Button name="$parentSaveButton" inherits="UIPanelButtonTemplate" text="Save">
+                <Size x="100" y="25"/>
+                <Anchors>
+                    <Anchor point="BOTTOM" x="0" y="20"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnManualAddSaveClick then
+                            RLC:OnManualAddSaveClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+        </Frames>
+        <Scripts>
+            <OnLoad>
+                self:RegisterForDrag("LeftButton");
+            </OnLoad>
+            <OnDragStart>
+                self:StartMoving();
+            </OnDragStart>
+            <OnDragStop>
+                self:StopMovingOrSizing();
+            </OnDragStop>
+            <OnShow>
+                if RaidLootCounterFrameMask then
+                    RaidLootCounterFrameMask:Show()
+                end
+                if RLC and RLC.UpdateManualAddScroll then
+                    RLC:UpdateManualAddScroll()
                 end
             </OnShow>
             <OnHide>

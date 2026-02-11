@@ -43,6 +43,7 @@ local enUS = {
     ["ROLL_RESULTS_COUNT"] = "rolls",
     ["ROLL_WINNER"] = "Winner",
     ["ROLL_PATTERN"] = "(.+)%s+rolls%s+(%d+)[^%d]+(%d+)[^%d]+(%d+)",
+    ["ROLL_CAPTURE_SINGLE"] = "%s rolls %s (%s-%s)",
 
     ["CONFIRM_CLEAR_TEXT"] = "Are you sure you want to clear all data?\n\nThis will delete all members and their loot records!",
     ["CONFIRM"] = "Confirm",
@@ -59,6 +60,28 @@ local enUS = {
     ["MSG_FROM"] = " from ",
     ["MSG_TO"] = " to ",
     ["ROLL_ANNOUNCE"] = "Roll ",
+
+    -- Buttons
+    ["BUTTON_MS_ROLL"] = "MS Roll",
+    ["BUTTON_OS_ROLL"] = "OS Roll",
+    ["BUTTON_MS_SAVE"] = "MS Save",
+    ["BUTTON_OS_SAVE"] = "OS Save",
+    ["BUTTON_REMOVE"] = "Remove",
+    ["BUTTON_MANUAL_ADD"] = "Manual Add",
+    ["BUTTON_SAVE"] = "Save",
+    ["TITLE_MANUAL_ADD"] = "Manual Add Loot",
+    ["BOSS_MANUAL_ADD"] = "Manual Add",
+    ["MSG_MANUAL_ADD_SUCCESS"] = "Added %s to history.",
+    ["MSG_NO_ITEM_SELECTED"] = "Please select an item first.",
+
+    -- Errors / Info
+    ["ERR_NO_LOOT_SELECTION_FRAME"] = "Error: RLCLootSelectionFrame not found",
+    ["ERR_PARENT_FRAME_NIL"] = "Error: Parent frame is nil",
+    ["ERR_PLAYERNAME_NIL"] = "Error: PlayerName is nil on frame %s",
+
+    -- Auto announce toggle
+    ["AUTO_ANNOUNCE_ON"] = "Auto announce: |cff00ff00Enabled|r",
+    ["AUTO_ANNOUNCE_OFF"] = "Auto announce: |cffff0000Disabled|r",
 
     -- Instance Abbreviations
     ["INSTANCE_ABBREVIATIONS"] = {

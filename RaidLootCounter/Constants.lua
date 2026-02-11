@@ -69,6 +69,81 @@ ns.CONSTANTS.LOOT_CONFIG = {
     MIN_QUALITY = 4, -- Epic
 }
 
+-- 掉落类型常量
+ns.CONSTANTS.LOOT_TYPE = {
+    MS = "MS",
+    OS = "OS",
+    UNASSIGN = "UNASSIGN",
+}
+
 -- Tier Set Definitions (Loaded from Localization)
 ns.CONSTANTS.TIER_PATTERNS = ns.L["TIER_PATTERNS"] or {}
 ns.CONSTANTS.TIER_SETS = ns.L["TIER_SETS"] or {}
+
+-- ============================================================================
+-- Chat Utilities
+-- ============================================================================
+
+ns.Chat = {}
+
+-- 统一的团队/本地输出
+function ns.Chat.SendRaidOrPrint(msg, channel)
+    if not msg or msg == "" then return end
+
+    local numRaidMembers = GetNumRaidMembers and GetNumRaidMembers() or 0
+    if numRaidMembers > 0 and SendChatMessage then
+        SendChatMessage(msg, channel or "RAID_WARNING")
+    else
+        print(msg)
+    end
+end
+
+-- 带自动折行的列表输出（用于物品列表等，需要考虑 255 长度限制）
+function ns.Chat.SendWrapped(prefix, items, channel, indent)
+    if not items or #items == 0 then return end
+
+    local line = prefix or ""
+    local channelToUse = channel or "RAID_WARNING"
+    local indentText = indent or "  "
+
+    for _, part in ipairs(items) do
+        local itemStr = " " .. part
+        if string.len(line) + string.len(itemStr) > 250 then
+            ns.Chat.SendRaidOrPrint(line, channelToUse)
+            line = indentText .. part
+        else
+            line = line .. itemStr
+        end
+    end
+
+    if line ~= "" then
+        ns.Chat.SendRaidOrPrint(line, channelToUse)
+    end
+end
+
+-- ============================================================================
+-- Loot Utilities
+-- ============================================================================
+
+ns.LootUtil = {}
+
+-- 统一规范化掉落条目结构，兼容旧的字符串格式
+function ns.LootUtil.NormalizeLootItem(lootTable, index)
+    if not lootTable or not index then return nil end
+
+    local item = lootTable[index]
+    if type(item) ~= "table" then
+        lootTable[index] = {
+            link = item,
+            holder = nil,
+            type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
+        }
+        item = lootTable[index]
+    else
+        if item.type == nil then
+            item.type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN
+        end
+    end
+
+    return item
+end

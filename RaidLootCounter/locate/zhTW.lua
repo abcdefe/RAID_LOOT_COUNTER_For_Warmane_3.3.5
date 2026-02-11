@@ -40,6 +40,7 @@ local zhTW = {
     ["ROLL_RESULTS_COUNT"] = "個roll點",
     ["ROLL_WINNER"] = "獲勝者",
     ["ROLL_PATTERN"] = "(.+)擲出(%d+)[^%d]+(%d+)[^%d]+(%d+)",
+    ["ROLL_CAPTURE_SINGLE"] = "%s 擲出 %s (%s-%s)",
 
     ["OUTPUT_ADD"] = "新增",
     ["OUTPUT_REMOVE"] = "移除",
@@ -62,6 +63,28 @@ local zhTW = {
     ["MSG_FROM"] = " 從 ",
     ["MSG_TO"] = " 給 ",
     ["ROLL_ANNOUNCE"] = "Roll ",
+
+    -- Buttons
+    ["BUTTON_MS_ROLL"] = "MS Roll",
+    ["BUTTON_OS_ROLL"] = "OS Roll",
+    ["BUTTON_MS_SAVE"] = "MS 儲存",
+    ["BUTTON_OS_SAVE"] = "OS 儲存",
+    ["BUTTON_REMOVE"] = "移除",
+    ["BUTTON_MANUAL_ADD"] = "手動添加",
+    ["BUTTON_SAVE"] = "儲存",
+    ["TITLE_MANUAL_ADD"] = "手動添加裝備",
+    ["BOSS_MANUAL_ADD"] = "手動添加",
+    ["MSG_MANUAL_ADD_SUCCESS"] = "已添加 %s 到歷史記錄。",
+    ["MSG_NO_ITEM_SELECTED"] = "請先選擇一件裝備。",
+
+    -- Errors / Info
+    ["ERR_NO_LOOT_SELECTION_FRAME"] = "錯誤: 找不到 RLCLootSelectionFrame",
+    ["ERR_PARENT_FRAME_NIL"] = "錯誤: 父級 Frame 為空",
+    ["ERR_PLAYERNAME_NIL"] = "錯誤: Frame %s 上的 PlayerName 為空",
+
+    -- Auto announce toggle
+    ["AUTO_ANNOUNCE_ON"] = "自動通報: |cff00ff00已開啟|r",
+    ["AUTO_ANNOUNCE_OFF"] = "自動通報: |cffff0000已關閉|r",
 
     -- Instance Abbreviations
     ["INSTANCE_ABBREVIATIONS"] = {

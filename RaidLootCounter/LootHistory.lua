@@ -28,6 +28,8 @@ function RLC:OnViewLootClick()
     if RaidLootCounterLootHistoryFrame:IsShown() then
         RaidLootCounterLootHistoryFrame:Hide()
     else
+        RaidLootCounterLootHistoryFrame:ClearAllPoints()
+        RaidLootCounterLootHistoryFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
         RaidLootCounterLootHistoryFrame:Show()
         RLC:RefreshLootHistory()
     end
@@ -293,4 +295,237 @@ end
 function RLC:ResetMockData()
     -- Placeholder for any specific mock data cleanup if needed
     -- Currently ClearAllData handles the DB cleanup
+end
+
+-- ============================================================================
+-- 手动添加掉落功能 (Manual Add Loot)
+-- ============================================================================
+
+local manualAddRows = {}
+local manualAddData = {}
+local selectedManualItem = nil
+
+local function GetManualAddRow(parent, index)
+    if not manualAddRows[index] then
+        local rowName = "RLC_ManualAddRow_" .. index
+        -- Reuse the loot selection row template as it fits well (Item Name + Details)
+        local row = CreateFrame("Button", rowName, parent, "RLC_LootSelectionRowTemplate")
+        -- Adjust font strings if needed, but defaults should be okay
+        row.itemText = _G[rowName.."Item"]
+        row.detailsText = _G[rowName.."Boss"] -- We can use this for ilvl or type
+        
+        -- Override OnClick to point to our handler
+        row:SetScript("OnClick", function(self)
+             RLC:OnManualAddRowClick(self)
+        end)
+
+        -- Init highlight
+        row.highlight = _G[rowName.."Highlight"]
+        
+        manualAddRows[index] = row
+    end
+    local row = manualAddRows[index]
+    row:SetParent(parent)
+    row:ClearAllPoints()
+    row:Show()
+    return row
+end
+
+function RLC:OnManualAddClick()
+    -- Init localized text
+    if _G["RLCManualAddFrameTitle"] then
+        _G["RLCManualAddFrameTitle"]:SetText(L["TITLE_MANUAL_ADD"] or "Manual Add Equipment")
+    end
+    if _G["RLCManualAddFrameSaveButton"] then
+        _G["RLCManualAddFrameSaveButton"]:SetText(L["BUTTON_SAVE"] or "Save")
+    end
+
+    if RLCManualAddFrame:IsShown() then
+        RLCManualAddFrame:Hide()
+    else
+        RLCManualAddFrame:ClearAllPoints()
+        RLCManualAddFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        RLCManualAddFrame:Show()
+        RLC:RefreshManualAddList()
+    end
+end
+
+function RLC:RefreshManualAddList()
+    manualAddData = {}
+    selectedManualItem = nil
+    
+    -- Scan bags for Epic (4) or Legendary (5) items
+    for bag = 0, 4 do
+        local numSlots = GetContainerNumSlots(bag)
+        for slot = 1, numSlots do
+            local link = GetContainerItemLink(bag, slot)
+            if link then
+                local _, _, quality, iLevel = GetItemInfo(link)
+                
+                -- Fallback if GetItemInfo is not ready (returns nil)
+                if not quality then
+                    -- Parse color from link |cffRRGGBB
+                    if link:find("|cffa335ee") then -- Epic (Purple)
+                        quality = 4
+                    elseif link:find("|cffff8000") then -- Legendary (Orange)
+                        quality = 5
+                    elseif link:find("|cffe6cc80") then -- Heirloom (Gold)
+                        quality = 7
+                    end
+                end
+
+                if quality and quality >= 4 then
+                    -- Check for BOE
+                    local isBOE = ns.IsItemBOE(link)
+                    
+                    table.insert(manualAddData, {
+                        link = link,
+                        bag = bag,
+                        slot = slot,
+                        quality = quality,
+                        iLevel = iLevel or 0,
+                        isBOE = isBOE
+                    })
+                end
+            end
+        end
+    end
+    
+    -- Sort by quality desc, then name
+    table.sort(manualAddData, function(a, b)
+        if a.quality == b.quality then
+             return (a.link or "") < (b.link or "")
+        end
+        return a.quality > b.quality
+    end)
+    
+    RLC:UpdateManualAddScroll()
+end
+
+function RLC:UpdateManualAddScroll()
+    if not RLCManualAddFrame:IsShown() then return end
+    
+    local scrollFrame = RLCManualAddScrollFrame
+    local numItems = #manualAddData
+    
+    FauxScrollFrame_Update(scrollFrame, numItems, 10, 25)
+    
+    local offset = FauxScrollFrame_GetOffset(scrollFrame)
+    
+    for i = 1, 10 do
+        local index = offset + i
+        -- Fix: Parent to the main frame (RLCManualAddFrame), not the scroll frame
+        local row = GetManualAddRow(scrollFrame:GetParent(), i)
+        
+        if index <= numItems then
+            local data = manualAddData[index]
+            row.data = data
+            
+            local displayText = ""
+            
+            -- Tier info
+            local tier = ns.GetItemTier(data.link)
+            if tier then
+                displayText = displayText .. "|cffffd100[" .. tier .. "]|r "
+            end
+            
+            -- BOE info
+            if data.isBOE then
+                displayText = displayText .. "|cff00ccff[BOE]|r "
+            end
+            
+            displayText = displayText .. data.link
+            
+            row.itemText:SetText(displayText)
+            row.detailsText:SetText("iLvl: " .. (data.iLevel or "?"))
+            
+            -- Fix: Correctly position rows relative to the frame content area
+            -- The scroll frame is anchored at TOPLEFT x=20, y=-50
+            -- We should position rows relative to the scroll frame's content or similar anchor
+            -- Since we are attaching to Parent (Main Frame), we need to offset manually to match the scroll area
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -((i-1)*25))
+            row:SetWidth(760) 
+            
+            -- Update Highlight
+            if selectedManualItem and selectedManualItem == data then
+                if row.highlight then row.highlight:Show() end
+            else
+                if row.highlight then row.highlight:Hide() end
+            end
+            
+            row:Show()
+        else
+            row:Hide()
+        end
+    end
+end
+
+function RLC:OnManualAddRowClick(row)
+    if not row or not row.data then return end
+    
+    for _, r in pairs(manualAddRows) do
+        if r.highlight then r.highlight:Hide() end
+    end
+    
+    if row.highlight then row.highlight:Show() end
+    selectedManualItem = row.data
+end
+
+function RLC:OnManualAddSaveClick()
+    if not selectedManualItem then
+        print(ns.CONSTANTS.CHAT_PREFIX .. (L["MSG_NO_ITEM_SELECTED"] or "Please select an item first."))
+        return
+    end
+    
+    -- Gather environment info
+    local instanceName = GetInstanceInfo() or "Unknown Instance"
+    local difficulty = GetInstanceDifficulty()
+    local difficultyName = ""
+    local SUFFIX = ns.CONSTANTS.DIFFICULTY_SUFFIX
+    local _, instanceType = IsInInstance()
+    
+    if instanceType == "party" then
+        if difficulty == 1 then difficultyName = SUFFIX["5N"]
+        elseif difficulty == 2 then difficultyName = SUFFIX["5H"] end
+    elseif instanceType == "raid" then
+        if difficulty == 1 then difficultyName = SUFFIX["10N"]
+        elseif difficulty == 2 then difficultyName = SUFFIX["25N"]
+        elseif difficulty == 3 then difficultyName = SUFFIX["10H"]
+        elseif difficulty == 4 then difficultyName = SUFFIX["25H"] end
+    end
+    
+    local bossName = (L["BOSS_MANUAL_ADD"] or "Manual Add")
+    
+    -- Construct Loot Data
+    local guid = "Manual_" .. time() .. "_" .. math.random(1000)
+    
+    local lootData = {
+        name = bossName,
+        instance = instanceName .. difficultyName,
+        loot = {
+            {
+                link = selectedManualItem.link,
+                holder = nil,
+                type = "UNASSIGN",
+                isBOE = ns.IsItemBOE(selectedManualItem.link)
+            }
+        },
+        timestamp = time()
+    }
+    
+    if not RaidLootCounterDB.lootedBosses then
+        RaidLootCounterDB.lootedBosses = {}
+    end
+    
+    RaidLootCounterDB.lootedBosses[guid] = lootData
+    
+    print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["MSG_MANUAL_ADD_SUCCESS"] or "Added %s to history.", selectedManualItem.link))
+    
+    -- Refresh History
+    if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
+        RLC:RefreshLootHistory()
+    end
+    
+    RLCManualAddFrame:Hide()
 end
