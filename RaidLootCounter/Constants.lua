@@ -41,6 +41,7 @@ ns.CONSTANTS.COLORS = {
     BOSS = "|cffffd100",
     TIMESTAMP = "|cffaaaaaa",
     HOLDER = "|cff00ff00",
+    BOE = "|cff00ccff",
     
     GREEN = "|cff00ff00",
     RED = "|cffff0000",
@@ -74,6 +75,31 @@ ns.CONSTANTS.LOOT_TYPE = {
     MS = "MS",
     OS = "OS",
     UNASSIGN = "UNASSIGN",
+}
+
+-- UI 模式常量
+ns.CONSTANTS.MODES = {
+    ASSIGN = "ASSIGN",
+    UNASSIGN = "UNASSIGN",
+    ROLL = "ROLL",
+}
+
+-- UI 常量
+ns.CONSTANTS.UI = {
+    HISTORY_MAX_ROWS = 35,    -- Loot History 窗口可视行数
+    HISTORY_ROW_HEIGHT = 16,  -- Loot History 每一行高度
+    SELECTION_MAX_ROWS = 12,  -- Loot Selection 窗口可视行数 (假设为12，需在 XML 或 Lua 中确认)
+    SELECTION_ROW_HEIGHT = 25,-- Loot Selection 每一行高度
+    MANUAL_ADD_MAX_ROWS = 10,
+    MANUAL_ADD_ROW_HEIGHT = 25,
+}
+
+-- 默认值常量
+ns.CONSTANTS.DEFAULTS = {
+    UNKNOWN_INSTANCE = "Unknown Instance",
+    UNKNOWN_BOSS = "Unknown Boss",
+    UNKNOWN_CLASS = "Unknown",
+    DEFAULT_CLASS = "WARRIOR",
 }
 
 -- Tier Set Definitions (Loaded from Localization)

@@ -159,7 +159,7 @@ function Roll.Start(itemLink, rollType)
 
     rollResults = {}
     isRollCapturing = true
-    Roll.currentRollType = rollType or "MS"
+    Roll.currentRollType = rollType or ns.CONSTANTS.LOOT_TYPE.MS
 
     if not rollCaptureFrame then
         rollCaptureFrame = CreateFrame("Frame")
@@ -171,10 +171,10 @@ function Roll.Start(itemLink, rollType)
         end
     end)
 
-    print(ns.CONSTANTS.CHAT_PREFIX .. L["ROLL_CAPTURE_STARTED"] .. " (" .. (rollType or "MS") .. ")")
+    print(ns.CONSTANTS.CHAT_PREFIX .. L["ROLL_CAPTURE_STARTED"] .. " (" .. (rollType or ns.CONSTANTS.LOOT_TYPE.MS) .. ")")
 
     if itemLink then
-        local prefix = (rollType == "OS") and "OS Roll " or "MS Roll "
+        local prefix = (rollType == ns.CONSTANTS.LOOT_TYPE.OS) and "OS Roll " or "MS Roll "
         Chat.SendRaidOrPrint(prefix .. itemLink, "RAID_WARNING")
     end
 end
@@ -198,10 +198,10 @@ function Roll.StopAndAnnounce()
 
     EnrichResults()
 
-    local isOSRoll = (Roll.currentRollType == "OS")
+    local isOSRoll = (Roll.currentRollType == ns.CONSTANTS.LOOT_TYPE.OS)
     SortResults(isOSRoll)
 
-    local rollTypeStr = isOSRoll and "OS" or "MS"
+    local rollTypeStr = isOSRoll and ns.CONSTANTS.LOOT_TYPE.OS or ns.CONSTANTS.LOOT_TYPE.MS
     Chat.SendRaidOrPrint("=== Raid Loot Counter " .. rollTypeStr .. " Roll Results === (" .. #rollResults .. " rolls)", "RAID_WARNING")
 
     for i, result in ipairs(rollResults) do

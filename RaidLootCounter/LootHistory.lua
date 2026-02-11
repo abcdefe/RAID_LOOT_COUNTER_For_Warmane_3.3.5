@@ -54,8 +54,8 @@ function RLC:RefreshLootHistory()
         if type(data) == "table" then
             hasData = true
             -- 从Boss名称中提取难度信息
-            local bossName = data.name or "Unknown Boss"
-            local instanceName = data.instance or "Unknown Instance"
+            local bossName = data.name or ns.CONSTANTS.DEFAULTS.UNKNOWN_BOSS
+            local instanceName = data.instance or ns.CONSTANTS.DEFAULTS.UNKNOWN_INSTANCE
             local difficulty = "Unknown Difficulty"
             
             -- 尝试从名字末尾匹配 (10N), (25H) 等
@@ -112,7 +112,7 @@ function RLC:RefreshLootHistory()
                             local lineText = "      "
                             local tier = ns.GetItemTier(itemData.link)
                             if tier then
-                                lineText = lineText .. "|cffffd100[" .. tier .. "]|r "
+                                lineText = lineText .. ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
                             end
                             
                             local isBOE = itemData.isBOE
@@ -121,13 +121,13 @@ function RLC:RefreshLootHistory()
                             end
 
                             if isBOE then
-                                lineText = lineText .. "|cff00ccff[BOE]|r "
+                                lineText = lineText .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
                             end
 
                             lineText = lineText .. itemData.link
 
                             if itemData.holder then
-                                local typeStr = (itemData.type == "OS") and " -OS" or " -MS"
+                                local typeStr = (itemData.type == ns.CONSTANTS.LOOT_TYPE.OS) and " -OS" or " -MS"
                                 
                                 local holderName = itemData.holder
                                 local classColor = ""
@@ -167,7 +167,7 @@ function RLC:UpdateLootHistoryScroll()
     
     local numRows = #RLC.lootHistoryData
     -- 35 visible rows (approx 600 height / 16)
-    FauxScrollFrame_Update(scrollFrame, numRows, 35, 16)
+    FauxScrollFrame_Update(scrollFrame, numRows, ns.CONSTANTS.UI.HISTORY_MAX_ROWS, ns.CONSTANTS.UI.HISTORY_ROW_HEIGHT)
     
     local offset = FauxScrollFrame_GetOffset(scrollFrame)
     RLC:HideAllHistoryRows()
@@ -175,7 +175,7 @@ function RLC:UpdateLootHistoryScroll()
     local parent = RaidLootCounterLootHistoryFrame
     local yPos = -50
     
-    for i = 1, 35 do
+    for i = 1, ns.CONSTANTS.UI.HISTORY_MAX_ROWS do
         local dataIndex = offset + i
         if dataIndex > numRows then break end
         
@@ -185,7 +185,7 @@ function RLC:UpdateLootHistoryScroll()
         row.text:SetText(rowData.text)
         row.data = rowData
         
-        yPos = yPos - 16
+        yPos = yPos - ns.CONSTANTS.UI.HISTORY_ROW_HEIGHT
     end
 end
 
@@ -230,8 +230,8 @@ function RLC:InjectMockData()
             instance = "Icecrown Citadel",
             timestamp = currentTime - 3600,
             loot = {
-                { link = "|cffa335ee|Hitem:50415:0:0:0:0:0:0:0:80|h[Bryntroll, the Bone Arbiter]|h|r", holder = nil, type = "UNASSIGN" },
-                { link = "|cffa335ee|Hitem:50412:0:0:0:0:0:0:0:80|h[Loop of the Endless Labyrinth]|h|r", holder = nil, type = "UNASSIGN" }
+                { link = "|cffa335ee|Hitem:50415:0:0:0:0:0:0:0:80|h[Bryntroll, the Bone Arbiter]|h|r", holder = nil, type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN },
+                { link = "|cffa335ee|Hitem:50412:0:0:0:0:0:0:0:80|h[Loop of the Endless Labyrinth]|h|r", holder = nil, type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN }
             }
         },
         -- ICC 25H: Lady Deathwhisper
@@ -241,7 +241,7 @@ function RLC:InjectMockData()
             instance = "Icecrown Citadel",
             timestamp = currentTime - 3000,
             loot = {
-                { link = "|cffa335ee|Hitem:50363:0:0:0:0:0:0:0:80|h[Deathwhisper Raiment]|h|r", holder = nil, type = "UNASSIGN" }
+                { link = "|cffa335ee|Hitem:50363:0:0:0:0:0:0:0:80|h[Deathwhisper Raiment]|h|r", holder = nil, type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN }
             }
         },
         -- ICC 25H: Gunship Chest (Test Chest logic)
@@ -251,7 +251,7 @@ function RLC:InjectMockData()
             instance = "Icecrown Citadel",
             timestamp = currentTime - 2400,
             loot = {
-                 { link = "|cffa335ee|Hitem:50343:0:0:0:0:0:0:0:80|h[Muradin's Spyglass]|h|r", holder = nil, type = "UNASSIGN" }
+                 { link = "|cffa335ee|Hitem:50343:0:0:0:0:0:0:0:80|h[Muradin's Spyglass]|h|r", holder = nil, type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN }
             }
         },
         -- ICC 10N: Marrowgar (Different difficulty)
@@ -261,7 +261,7 @@ function RLC:InjectMockData()
             instance = "Icecrown Citadel",
             timestamp = currentTime - 7200,
             loot = {
-                { link = "|cffa335ee|Hitem:50787:0:0:0:0:0:0:0:80|h[Citadel Enforcer's Claymore]|h|r", holder = "PlayerB", type = "OS", isBOE = true }
+                { link = "|cffa335ee|Hitem:50787:0:0:0:0:0:0:0:80|h[Citadel Enforcer's Claymore]|h|r", holder = "PlayerB", type = ns.CONSTANTS.LOOT_TYPE.OS, isBOE = true }
             }
         },
         -- RS 25H: Halion
@@ -271,8 +271,8 @@ function RLC:InjectMockData()
             instance = "The Ruby Sanctum",
             timestamp = currentTime - 1800,
             loot = {
-                { link = "|cffa335ee|Hitem:54590:0:0:0:0:0:0:0:80|h[Sharpened Twilight Scale]|h|r", holder = nil, type = "UNASSIGN" },
-                { link = "|cffa335ee|Hitem:54569:0:0:0:0:0:0:0:80|h[Halion, Staff of Forgotten Love]|h|r", holder = nil, type = "UNASSIGN" }
+                { link = "|cffa335ee|Hitem:54590:0:0:0:0:0:0:0:80|h[Sharpened Twilight Scale]|h|r", holder = nil, type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN },
+                { link = "|cffa335ee|Hitem:54569:0:0:0:0:0:0:0:80|h[Halion, Staff of Forgotten Love]|h|r", holder = nil, type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN }
             }
         }
     }
@@ -408,11 +408,11 @@ function RLC:UpdateManualAddScroll()
     local scrollFrame = RLCManualAddScrollFrame
     local numItems = #manualAddData
     
-    FauxScrollFrame_Update(scrollFrame, numItems, 10, 25)
+    FauxScrollFrame_Update(scrollFrame, numItems, ns.CONSTANTS.UI.MANUAL_ADD_MAX_ROWS, ns.CONSTANTS.UI.MANUAL_ADD_ROW_HEIGHT)
     
     local offset = FauxScrollFrame_GetOffset(scrollFrame)
     
-    for i = 1, 10 do
+    for i = 1, ns.CONSTANTS.UI.MANUAL_ADD_MAX_ROWS do
         local index = offset + i
         -- Fix: Parent to the main frame (RLCManualAddFrame), not the scroll frame
         local row = GetManualAddRow(scrollFrame:GetParent(), i)
@@ -426,12 +426,12 @@ function RLC:UpdateManualAddScroll()
             -- Tier info
             local tier = ns.GetItemTier(data.link)
             if tier then
-                displayText = displayText .. "|cffffd100[" .. tier .. "]|r "
+                displayText = displayText .. ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
             end
             
             -- BOE info
             if data.isBOE then
-                displayText = displayText .. "|cff00ccff[BOE]|r "
+                displayText = displayText .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
             end
             
             displayText = displayText .. data.link
@@ -444,7 +444,7 @@ function RLC:UpdateManualAddScroll()
             -- We should position rows relative to the scroll frame's content or similar anchor
             -- Since we are attaching to Parent (Main Frame), we need to offset manually to match the scroll area
             row:ClearAllPoints()
-            row:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -((i-1)*25))
+            row:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -((i-1)*ns.CONSTANTS.UI.MANUAL_ADD_ROW_HEIGHT))
             row:SetWidth(760) 
             
             -- Update Highlight
@@ -479,7 +479,7 @@ function RLC:OnManualAddSaveClick()
     end
     
     -- Gather environment info
-    local instanceName = GetInstanceInfo() or "Unknown Instance"
+    local instanceName = GetInstanceInfo() or ns.CONSTANTS.DEFAULTS.UNKNOWN_INSTANCE
     local difficulty = GetInstanceDifficulty()
     local difficultyName = ""
     local SUFFIX = ns.CONSTANTS.DIFFICULTY_SUFFIX
@@ -507,7 +507,7 @@ function RLC:OnManualAddSaveClick()
             {
                 link = selectedManualItem.link,
                 holder = nil,
-                type = "UNASSIGN",
+                type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
                 isBOE = ns.IsItemBOE(selectedManualItem.link)
             }
         },

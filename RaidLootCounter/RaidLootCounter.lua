@@ -9,9 +9,36 @@ local ADDON_NAME = "RaidLootCounter"
 RLC = {} -- 全局对象，供XML调用
 
 local Chat = ns.Chat
-local LootUtil = ns.LootUtil
+-- local LootUtil = ns.LootUtil -- Was nil
 local Roll = ns.Roll
 local DB = ns.DB
+
+-- ============================================================================
+-- 0. 工具模块 (LootUtil) - 定义在此处以确保可用
+-- ============================================================================
+local LootUtil = {}
+ns.LootUtil = LootUtil
+
+function LootUtil.NormalizeLootItem(lootTable, index)
+    if not lootTable or not index then return nil end
+    local item = lootTable[index]
+    if type(item) ~= "table" then
+        -- Convert old string format to table format
+        local newItem = {
+            link = item,
+            holder = nil,
+            type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
+            isBOE = ns.IsItemBOE(item)
+        }
+        lootTable[index] = newItem
+        return newItem
+    end
+    -- Ensure type field exists
+    if not item.type then
+        item.type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN
+    end
+    return item
+end
 
 -- ============================================================================
 -- 1. 常量与变量 (Constants & Globals)
@@ -113,7 +140,7 @@ local lootSelectionRows = {}
 -- 临时状态
 RLC.targetPlayer = nil
 RLC.selectedLoot = nil
-RLC.selectionMode = "ASSIGN" -- "ASSIGN", "UNASSIGN", "ROLL"
+RLC.selectionMode = ns.CONSTANTS.MODES.ASSIGN -- "ASSIGN", "UNASSIGN", "ROLL"
 
 -- ============================================================================
 -- 2. 数据管理 (Data Management)
@@ -205,7 +232,7 @@ function RLC:SendLootUpdate(playerName, newCount, isAdd, itemLink, isOS)
     local osItems = {}
     
     for _, item in ipairs(items) do
-        if item.type == "OS" then
+        if item.type == ns.CONSTANTS.LOOT_TYPE.OS then
             table.insert(osItems, item.link)
         else
             table.insert(msItems, item.link)
@@ -240,7 +267,7 @@ function RLC:SendToRaid()
 
     for playerName, data in pairs(playersDB) do
         if data and type(data) == "table" then
-            local class = data.class or "WARRIOR"
+            local class = data.class or ns.CONSTANTS.DEFAULTS.DEFAULT_CLASS
             if not dataByClass[class] then dataByClass[class] = {} end
             table.insert(dataByClass[class], {
                 name = playerName,
@@ -279,7 +306,7 @@ function RLC:SendToRaid()
             if #items > 0 then
                 local currentLine = "  "
                 for i, item in ipairs(items) do
-                    local itemStr = item.link .. (item.type == "OS" and "(OS)" or "(MS)")
+                    local itemStr = item.link .. (item.type == ns.CONSTANTS.LOOT_TYPE.OS and "(OS)" or "(MS)")
                     if string.len(currentLine) + string.len(itemStr) > 250 then
                         Chat.SendRaidOrPrint(currentLine, "RAID_WARNING")
                         currentLine = "  " .. itemStr
@@ -361,7 +388,7 @@ function RLC:RefreshDisplay()
     
     for playerName, data in pairs(playersDB) do
         if data and type(data) == "table" then
-            local class = data.class or "WARRIOR"
+            local class = data.class or ns.CONSTANTS.DEFAULTS.DEFAULT_CLASS
             if not membersByClass[class] then membersByClass[class] = {} end
             table.insert(membersByClass[class], {
                 name = playerName,
@@ -459,8 +486,8 @@ function RLC:UpdateLootSelectionScroll()
     if not scrollFrame then return end
     
     local numRows = #RLC.lootSelectionData
-    -- 12 visible rows (approx 300 height / 25)
-    FauxScrollFrame_Update(scrollFrame, numRows, 12, 25)
+    -- Visible rows defined in Constants
+    FauxScrollFrame_Update(scrollFrame, numRows, ns.CONSTANTS.UI.SELECTION_MAX_ROWS, ns.CONSTANTS.UI.SELECTION_ROW_HEIGHT)
     
     local offset = FauxScrollFrame_GetOffset(scrollFrame)
     HideAllLootSelectionRows()
@@ -468,7 +495,7 @@ function RLC:UpdateLootSelectionScroll()
     local parent = RLCLootSelectionFrame
     local yPos = -50
     
-    for i = 1, 12 do
+    for i = 1, ns.CONSTANTS.UI.SELECTION_MAX_ROWS do
         local dataIndex = offset + i
         if dataIndex > numRows then break end
         
@@ -479,16 +506,16 @@ function RLC:UpdateLootSelectionScroll()
         local displayText = ""
         local tier = ns.GetItemTier(item.link)
         if tier then
-            displayText = "|cffffd100[" .. tier .. "]|r "
+            displayText = ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
         end
         
         if item.isBOE then
-            displayText = displayText .. "|cff00ccff[BOE]|r "
+            displayText = displayText .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
         end
         
         displayText = displayText .. item.link
-        if RLC.selectionMode == "UNASSIGN" then
-             local typeStr = item.type or "UNASSIGN"
+        if RLC.selectionMode == ns.CONSTANTS.MODES.UNASSIGN then
+             local typeStr = item.type or ns.CONSTANTS.LOOT_TYPE.UNASSIGN
              displayText = displayText .. "  " .. ns.CONSTANTS.COLORS.GRAY .. "(" .. typeStr .. ")|r"
         end
         row.itemText:SetText(displayText)
@@ -509,13 +536,13 @@ function RLC:UpdateLootSelectionScroll()
             if row.highlight then row.highlight:Hide() end
         end
 
-        yPos = yPos - 25
+        yPos = yPos - ns.CONSTANTS.UI.SELECTION_ROW_HEIGHT
     end
 end
 
 function RLC:ShowLootSelection(playerName, mode)
     RLC.targetPlayer = playerName
-    RLC.selectionMode = mode or "ASSIGN"
+    RLC.selectionMode = mode or ns.CONSTANTS.MODES.ASSIGN
     RLC.selectedLoot = nil
     
     local frame = RLCLootSelectionFrame
@@ -532,9 +559,9 @@ function RLC:ShowLootSelection(playerName, mode)
     local saveOSButton = _G[frame:GetName().."SaveOSButton"]
     
     if title then 
-        if RLC.selectionMode == "UNASSIGN" then
+        if RLC.selectionMode == ns.CONSTANTS.MODES.UNASSIGN then
             title:SetText(L["TITLE_REMOVE_LOOT"] .. (playerName or "?"))
-        elseif RLC.selectionMode == "ROLL" then
+        elseif RLC.selectionMode == ns.CONSTANTS.MODES.ROLL then
             title:SetText(L["TITLE_ROLL_LOOT"])
         else
             title:SetText(L["TITLE_ASSIGN_LOOT"] .. (playerName or "?")) 
@@ -543,7 +570,7 @@ function RLC:ShowLootSelection(playerName, mode)
     
     -- 按钮状态调整
     if saveButton and saveOSButton then
-        if RLC.selectionMode == "ROLL" then
+        if RLC.selectionMode == ns.CONSTANTS.MODES.ROLL then
             saveButton:SetText(L["BUTTON_MS_ROLL"])
             saveButton:ClearAllPoints()
             saveButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOM", -10, 20)
@@ -552,7 +579,7 @@ function RLC:ShowLootSelection(playerName, mode)
             saveOSButton:SetText(L["BUTTON_OS_ROLL"])
             saveOSButton:ClearAllPoints()
             saveOSButton:SetPoint("BOTTOMLEFT", frame, "BOTTOM", 10, 20)
-        elseif RLC.selectionMode == "ASSIGN" then
+        elseif RLC.selectionMode == ns.CONSTANTS.MODES.ASSIGN then
             saveButton:SetText(L["BUTTON_MS_SAVE"])
             saveButton:ClearAllPoints()
             saveButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOM", -10, 20)
@@ -594,11 +621,11 @@ function RLC:ShowLootSelection(playerName, mode)
                     end
                     
                     local shouldInclude = false
-                    if RLC.selectionMode == "ASSIGN" then
+                    if RLC.selectionMode == ns.CONSTANTS.MODES.ASSIGN then
                         if link and not holder then shouldInclude = true end
-                    elseif RLC.selectionMode == "UNASSIGN" then
+                    elseif RLC.selectionMode == ns.CONSTANTS.MODES.UNASSIGN then
                         if link and holder == playerName then shouldInclude = true end
-                    elseif RLC.selectionMode == "ROLL" then
+                    elseif RLC.selectionMode == ns.CONSTANTS.MODES.ROLL then
                         if link and not holder then shouldInclude = true end
                     end
                     
@@ -648,7 +675,7 @@ end
 
 function RLC:OnMinusClick(parentFrame)
     if not parentFrame or not parentFrame.playerName then return end
-    RLC:ShowLootSelection(parentFrame.playerName, "UNASSIGN")
+    RLC:ShowLootSelection(parentFrame.playerName, ns.CONSTANTS.MODES.UNASSIGN)
 end
 
 function RLC:OnPlusClick(parentFrame)
@@ -661,7 +688,7 @@ function RLC:OnPlusClick(parentFrame)
         print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["ERR_PLAYERNAME_NIL"], frameName))
         return 
     end
-    RLC:ShowLootSelection(parentFrame.playerName, "ASSIGN")
+    RLC:ShowLootSelection(parentFrame.playerName, ns.CONSTANTS.MODES.ASSIGN)
 end
 
 function RLC:OnAutoAnnounceClick(checkbox)
@@ -682,7 +709,7 @@ function RLC:OnStartRollCaptureClick()
     end
     
     -- 仅负责打开选择窗口，实际 Roll 逻辑在 Roll 模块中处理
-    RLC:ShowLootSelection(nil, "ROLL")
+    RLC:ShowLootSelection(nil, ns.CONSTANTS.MODES.ROLL)
 end
 
 function RLC:OnStopRollCaptureClick()
@@ -785,17 +812,17 @@ function RLC:OnLootSelectionSaveOSClick()
         return
     end
 
-    if RLC.selectionMode == "ROLL" then
+    if RLC.selectionMode == ns.CONSTANTS.MODES.ROLL then
         local link = RLC.selectedLoot.link
         if link then
             local _, itemLink = GetItemInfo(link)
             itemLink = itemLink or link
             if Roll then
-                Roll.Start(itemLink, "OS")
+                Roll.Start(itemLink, ns.CONSTANTS.LOOT_TYPE.OS)
             end
         end
         RLCLootSelectionFrame:Hide()
-    elseif RLC.selectionMode == "ASSIGN" then
+    elseif RLC.selectionMode == ns.CONSTANTS.MODES.ASSIGN then
         RLC:PerformAssignment(true)
     end
 end
@@ -807,7 +834,7 @@ function RLC:OnLootSelectionSaveClick()
     end
 
     -- 处理 ROLL 模式 (MS Roll)
-    if RLC.selectionMode == "ROLL" then
+    if RLC.selectionMode == ns.CONSTANTS.MODES.ROLL then
         local link = RLC.selectedLoot.link
         if link then
              -- 获取实际的物品链接（如果是字符串）
@@ -816,14 +843,14 @@ function RLC:OnLootSelectionSaveClick()
             
             -- 开始监听并发送通告
             if Roll then
-                Roll.Start(itemLink, "MS")
+                Roll.Start(itemLink, ns.CONSTANTS.LOOT_TYPE.MS)
             end
         end
         RLCLootSelectionFrame:Hide()
         return
     end
 
-    if RLC.selectionMode == "ASSIGN" then
+    if RLC.selectionMode == ns.CONSTANTS.MODES.ASSIGN then
         RLC:PerformAssignment(false)
         return
     end
@@ -835,7 +862,7 @@ function RLC:OnLootSelectionSaveClick()
     
     if bossData and bossData.loot and bossData.loot[data.lootIndex] then
         local lootItem = LootUtil.NormalizeLootItem(bossData.loot, data.lootIndex)
-        local isUnassign = (RLC.selectionMode == "UNASSIGN")
+        local isUnassign = (RLC.selectionMode == ns.CONSTANTS.MODES.UNASSIGN)
         
         local playerData = RaidLootCounterDB.players[RLC.targetPlayer]
 
@@ -887,6 +914,11 @@ local function InitUI()
     if RaidLootCounterFrameAutoAnnounceCheckbox then RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce) end
     if RaidLootCounterFrameStartRollCaptureButton then RaidLootCounterFrameStartRollCaptureButton:SetText(L["START_ROLL_CAPTURE"]) end
     if RaidLootCounterFrameStopRollCaptureButton then RaidLootCounterFrameStopRollCaptureButton:SetText(L["STOP_ROLL_CAPTURE"]) end
+    
+    -- Manual Add Frame and Buttons
+    if RaidLootCounterLootHistoryFrameManualAddButton then RaidLootCounterLootHistoryFrameManualAddButton:SetText(L["BUTTON_MANUAL_ADD"]) end
+    if RLCManualAddFrameTitle then RLCManualAddFrameTitle:SetText(L["TITLE_MANUAL_ADD"]) end
+    if RLCManualAddFrameSaveButton then RLCManualAddFrameSaveButton:SetText(L["BUTTON_SAVE"]) end
 end
 
 local function OnAddonLoaded(self, event, addonName)
