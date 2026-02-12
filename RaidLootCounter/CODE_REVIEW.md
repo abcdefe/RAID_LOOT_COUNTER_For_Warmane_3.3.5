@@ -25,7 +25,11 @@ The project is well-structured for a World of Warcraft 3.3.5a addon:
 - **ScrollFrame Performance**: `LootHistory.lua` uses `FauxScrollFrame`. While efficient for large lists, the rendering logic reconstructs the display list (`RLC.lootHistoryData`) on every refresh.
 - **Input Validation**: The `OnPlusClick` function was recently patched to handle nil `parentFrame`. Similar checks should be proactively applied to `OnMinusClick` and other dynamically created UI elements.
 
-## 3. Recent Changes (v1.3.0)
+## 3. Recent Changes (v1.2.6)
+- **Precise Tooltip Hitboxes**:
+  - Refactored `LootHistory.lua` and `RaidLootCounter.lua` to implement precise hitboxes for item links.
+  - Replaced full-row hitboxes with dynamically sized hitboxes that only cover the item link text.
+  - Improved UX by preventing tooltips from appearing when hovering over whitespace or non-link text.
 - **Manual Add System**:
   - Implemented `RLCManualAddFrame` to scan bags for Epic/Legendary items.
   - Added logic to identify Tier sets (T7-T10) and BOE status.
@@ -40,8 +44,3 @@ The project is well-structured for a World of Warcraft 3.3.5a addon:
 ## 4. Security & Compatibility
 - **Taint**: No insecure code execution detected. The addon operates within the standard sandbox.
 - **Version**: Targeted for 3.3.5a (WotLK). Usage of `GetNumRaidMembers` (deprecated in later retail versions) is correct for this client version.
-
-## 5. Next Steps
-- **Refactoring**: Consider moving `OnClick` handlers from XML to Lua for better traceability.
-- **Testing**: Verify the "Chest" ID generation logic in `LootLogger.lua`.
-- **UI Polish**: The `RLC_PinFrame` is functional but basic. It could be styled to match the main UI better.

@@ -11,6 +11,7 @@ local function GetHistoryRow(parent, index)
         local rowName = "RLC_HistoryRow_" .. index
         local row = CreateFrame("Button", rowName, parent, "RLC_LootHistoryRowTemplate")
         row.text = _G[rowName.."Text"]
+        row.hitBox = _G[rowName.."HitBox"]
         historyRows[index] = row
     end
     local row = historyRows[index]
@@ -109,10 +110,10 @@ function RLC:RefreshLootHistory()
                 if boss.loot and #boss.loot > 0 then
                     for _, itemData in ipairs(boss.loot) do
                         if type(itemData) == "table" then
-                            local lineText = "      "
+                            local prefix = "      "
                             local tier = ns.GetItemTier(itemData.link)
                             if tier then
-                                lineText = lineText .. ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
+                                prefix = prefix .. ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
                             end
                             
                             local isBOE = itemData.isBOE
@@ -121,10 +122,11 @@ function RLC:RefreshLootHistory()
                             end
 
                             if isBOE then
-                                lineText = lineText .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
+                                prefix = prefix .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
                             end
 
-                            lineText = lineText .. itemData.link
+                            local link = itemData.link
+                            local suffix = ""
 
                             if itemData.holder then
                                 local typeStr = (itemData.type == ns.CONSTANTS.LOOT_TYPE.OS) and " -OS" or " -MS"
@@ -139,9 +141,11 @@ function RLC:RefreshLootHistory()
                                     end
                                 end
                                 
-                                lineText = lineText .. " " .. ns.CONSTANTS.COLORS.HOLDER .. "(" .. classColor .. holderName .. ns.CONSTANTS.COLORS.HOLDER .. typeStr .. ")|r"
+                                suffix = " " .. ns.CONSTANTS.COLORS.HOLDER .. "(" .. classColor .. holderName .. ns.CONSTANTS.COLORS.HOLDER .. typeStr .. ")|r"
                             end
-                            table.insert(RLC.lootHistoryData, { text = lineText, link = itemData.link, data = itemData })
+                            
+                            local fullText = prefix .. link .. suffix
+                            table.insert(RLC.lootHistoryData, { text = fullText, link = link, data = itemData, prefix = prefix })
                         else
                              -- Legacy support for string format
                             table.insert(RLC.lootHistoryData, { text = "      " .. itemData })
@@ -185,6 +189,26 @@ function RLC:UpdateLootHistoryScroll()
         row.text:SetText(rowData.text)
         row.data = rowData
         
+        if row.hitBox then
+            if rowData.link and rowData.prefix then
+                row.text:SetText(rowData.prefix)
+                local prefixWidth = row.text:GetStringWidth()
+                
+                row.text:SetText(rowData.link)
+                local linkWidth = row.text:GetStringWidth()
+                
+                row.text:SetText(rowData.text)
+                
+                row.hitBox:ClearAllPoints()
+                row.hitBox:SetPoint("LEFT", row.text, "LEFT", prefixWidth, 0)
+                row.hitBox:SetWidth(linkWidth)
+                row.hitBox:SetHeight(ns.CONSTANTS.UI.HISTORY_ROW_HEIGHT)
+                row.hitBox:Show()
+            else
+                row.hitBox:Hide()
+            end
+        end
+        
         yPos = yPos - ns.CONSTANTS.UI.HISTORY_ROW_HEIGHT
     end
 end
@@ -202,9 +226,9 @@ function RLC:OnHistoryRowClick(row)
     end
 end
 
-function RLC:OnHistoryRowEnter(row)
+function RLC:OnHistoryRowEnter(row, anchor)
     if row.data and row.data.link then
-        GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+        GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
         GameTooltip:SetHyperlink(row.data.link)
         GameTooltip:Show()
     end
@@ -313,6 +337,7 @@ local function GetManualAddRow(parent, index)
         -- Adjust font strings if needed, but defaults should be okay
         row.itemText = _G[rowName.."Item"]
         row.detailsText = _G[rowName.."Boss"] -- We can use this for ilvl or type
+        row.itemHitBox = _G[rowName.."ItemHitBox"]
         
         -- Override OnClick to point to our handler
         row:SetScript("OnClick", function(self)
@@ -421,23 +446,40 @@ function RLC:UpdateManualAddScroll()
             local data = manualAddData[index]
             row.data = data
             
-            local displayText = ""
+            local prefix = ""
             
             -- Tier info
             local tier = ns.GetItemTier(data.link)
             if tier then
-                displayText = displayText .. ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
+                prefix = prefix .. ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
             end
             
             -- BOE info
             if data.isBOE then
-                displayText = displayText .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
+                prefix = prefix .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
             end
             
-            displayText = displayText .. data.link
+            local link = data.link
+            local displayText = prefix .. link
             
             row.itemText:SetText(displayText)
             row.detailsText:SetText("iLvl: " .. (data.iLevel or "?"))
+
+            if row.itemHitBox then
+                 row.itemText:SetText(prefix)
+                 local prefixWidth = row.itemText:GetStringWidth()
+                 
+                 row.itemText:SetText(link)
+                 local linkWidth = row.itemText:GetStringWidth()
+                 
+                 row.itemText:SetText(displayText)
+                 
+                 row.itemHitBox:ClearAllPoints()
+                 row.itemHitBox:SetPoint("LEFT", row.itemText, "LEFT", prefixWidth, 0)
+                 row.itemHitBox:SetWidth(linkWidth)
+                 row.itemHitBox:SetHeight(ns.CONSTANTS.UI.MANUAL_ADD_ROW_HEIGHT)
+                 row.itemHitBox:Show()
+            end
             
             -- Fix: Correctly position rows relative to the frame content area
             -- The scroll frame is anchored at TOPLEFT x=20, y=-50

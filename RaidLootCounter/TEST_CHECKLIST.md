@@ -47,6 +47,7 @@
   - Verify instances and difficulties are grouped.
   - Verify items show "MS" or "OS" tags and the holder's name after assignment.
   - Verify tooltips work when hovering over items.
+  - **Tooltip Precision**: Verify tooltip ONLY appears when mouse is over the item link, NOT on whitespace/tags.
 
 ## 7. Manual Add (New Feature v1.3.0)
 - [ ] **Open Window**: In "Loot History", click "Manual Add".

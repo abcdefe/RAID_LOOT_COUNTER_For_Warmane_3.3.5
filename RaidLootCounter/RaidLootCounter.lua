@@ -469,6 +469,7 @@ local function GetLootSelectionRow(parent, index)
         local row = CreateFrame("Button", rowName, parent, "RLC_LootSelectionRowTemplate")
         row.itemText = _G[rowName.."Item"]
         row.bossText = _G[rowName.."Boss"]
+        row.itemHitBox = _G[rowName.."ItemHitBox"]
         row.highlight = _G[rowName.."Highlight"]
         lootSelectionRows[index] = row
     end
@@ -503,21 +504,25 @@ function RLC:UpdateLootSelectionScroll()
         local row = GetLootSelectionRow(parent, i)
         row:SetPoint("TOPLEFT", 20, yPos)
         
-        local displayText = ""
+        local prefix = ""
         local tier = ns.GetItemTier(item.link)
         if tier then
-            displayText = ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
+            prefix = ns.CONSTANTS.COLORS.BOSS .. "[" .. tier .. "]|r "
         end
         
         if item.isBOE then
-            displayText = displayText .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
+            prefix = prefix .. ns.CONSTANTS.COLORS.BOE .. "[BOE]|r "
         end
         
-        displayText = displayText .. item.link
+        local link = item.link
+        local suffix = ""
+        
         if RLC.selectionMode == ns.CONSTANTS.MODES.UNASSIGN then
              local typeStr = item.type or ns.CONSTANTS.LOOT_TYPE.UNASSIGN
-             displayText = displayText .. "  " .. ns.CONSTANTS.COLORS.GRAY .. "(" .. typeStr .. ")|r"
+             suffix = "  " .. ns.CONSTANTS.COLORS.GRAY .. "(" .. typeStr .. ")|r"
         end
+        
+        local displayText = prefix .. link .. suffix
         row.itemText:SetText(displayText)
         
         local locationText = ""
@@ -536,6 +541,23 @@ function RLC:UpdateLootSelectionScroll()
             if row.highlight then row.highlight:Hide() end
         end
 
+        -- Update HitBox size
+        if row.itemHitBox then
+            row.itemText:SetText(prefix)
+            local prefixWidth = row.itemText:GetStringWidth()
+            
+            row.itemText:SetText(link)
+            local linkWidth = row.itemText:GetStringWidth()
+            
+            row.itemText:SetText(displayText)
+            
+            row.itemHitBox:ClearAllPoints()
+            row.itemHitBox:SetPoint("LEFT", row.itemText, "LEFT", prefixWidth, 0)
+            row.itemHitBox:SetWidth(linkWidth)
+            row.itemHitBox:SetHeight(ns.CONSTANTS.UI.SELECTION_ROW_HEIGHT)
+            row.itemHitBox:Show()
+        end
+        
         yPos = yPos - ns.CONSTANTS.UI.SELECTION_ROW_HEIGHT
     end
 end
@@ -769,9 +791,9 @@ function RLC:OnLootSelectionRowClick(row)
     RLC.selectedLoot = row.data
 end
 
-function RLC:OnLootSelectionRowEnter(row)
+function RLC:OnLootSelectionRowEnter(row, anchor)
     if not row or not row.data or not row.data.link then return end
-    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
     GameTooltip:SetHyperlink(row.data.link)
     GameTooltip:Show()
 end

@@ -297,20 +297,34 @@
                 </FontString>
             </Layer>
         </Layers>
+        <Frames>
+            <Button name="$parentItemHitBox" enableMouse="true">
+                <Anchors>
+                     <Anchor point="LEFT" relativeTo="$parentItem"/>
+                </Anchors>
+                <Scripts>
+                    <OnEnter>
+                        if RLC and RLC.OnLootSelectionRowEnter then
+                            RLC:OnLootSelectionRowEnter(self:GetParent(), self)
+                        end
+                    </OnEnter>
+                    <OnLeave>
+                        GameTooltip:Hide()
+                    </OnLeave>
+                    <OnClick>
+                         if RLC and RLC.OnLootSelectionRowClick then
+                            RLC:OnLootSelectionRowClick(self:GetParent())
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+        </Frames>
         <Scripts>
             <OnClick>
                 if RLC and RLC.OnLootSelectionRowClick then
                     RLC:OnLootSelectionRowClick(self)
                 end
             </OnClick>
-            <OnEnter>
-                if RLC and RLC.OnLootSelectionRowEnter then
-                    RLC:OnLootSelectionRowEnter(self)
-                end
-            </OnEnter>
-            <OnLeave>
-                GameTooltip:Hide()
-            </OnLeave>
         </Scripts>
     </Button>
 
@@ -321,26 +335,40 @@
             <Layer level="OVERLAY">
                 <FontString name="$parentText" inherits="GameFontHighlightSmall" justifyH="LEFT">
                     <Anchors>
-                        <Anchor point="TOPLEFT" x="5" y="0"/>
-                        <Anchor point="BOTTOMRIGHT" x="-5" y="0"/>
+                        <Anchor point="LEFT" x="5" y="0"/>
+                        <Anchor point="RIGHT" x="-5" y="0"/>
                     </Anchors>
                 </FontString>
             </Layer>
         </Layers>
+        <Frames>
+            <Button name="$parentHitBox" enableMouse="true">
+                <Anchors>
+                     <Anchor point="LEFT" relativeTo="$parentText"/>
+                </Anchors>
+                <Scripts>
+                    <OnEnter>
+                        if RLC and RLC.OnHistoryRowEnter then
+                            RLC:OnHistoryRowEnter(self:GetParent(), self)
+                        end
+                    </OnEnter>
+                    <OnLeave>
+                        GameTooltip:Hide()
+                    </OnLeave>
+                    <OnClick>
+                         if RLC and RLC.OnHistoryRowClick then
+                            RLC:OnHistoryRowClick(self:GetParent())
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+        </Frames>
         <Scripts>
             <OnClick>
                 if RLC and RLC.OnHistoryRowClick then
                     RLC:OnHistoryRowClick(self)
                 end
             </OnClick>
-            <OnEnter>
-                if RLC and RLC.OnHistoryRowEnter then
-                    RLC:OnHistoryRowEnter(self)
-                end
-            </OnEnter>
-            <OnLeave>
-                GameTooltip:Hide()
-            </OnLeave>
         </Scripts>
     </Button>
 
