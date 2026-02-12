@@ -51,7 +51,7 @@ local function OnLootOpened()
     else
         -- 情况B: 无目标 (通常是宝箱)
         local subZone = GetSubZoneText() or ""
-        if subZone == "" then subZone = GetMinimapZoneText() or "Unknown" end
+        if subZone == "" then subZone = GetMinimapZoneText() or ns.CONSTANTS.DEFAULTS.UNKNOWN_CLASS end
         
         bossName = (L["CHEST_OR_UNKNOWN"] or "Chest") .. " - " .. subZone .. difficultyName
         
@@ -80,7 +80,7 @@ local function OnLootOpened()
     -- 4. 标记为已处理并存储信息
     -- local bossName = UnitName("target") or "Unknown Boss" -- 已在上方获取
     
-    local instanceName = GetInstanceInfo() or "Unknown Instance"
+    local instanceName = GetInstanceInfo() or ns.CONSTANTS.DEFAULTS.UNKNOWN_INSTANCE
     
     local lootData = {
         name = bossName,
@@ -104,7 +104,7 @@ local function OnLootOpened()
                 table.insert(lootData.loot, {
                     link = lootLink,
                     holder = nil,
-                    type = "UNASSIGN",
+                    type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
                     isBOE = ns.IsItemBOE(lootLink)
                 })
                 hasValidLoot = true
@@ -113,7 +113,7 @@ local function OnLootOpened()
     end
     
     if hasValidLoot then
-        print("|cff00ff00[RaidLootCounter]|r " .. string.format(L["MSG_NEW_BOSS_LOOT"] or "Found new Boss loot (%d items):", #lootData.loot))
+        print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["MSG_NEW_BOSS_LOOT"] or "Found new Boss loot (%d items):", #lootData.loot))
         for i, v in ipairs(lootData.loot) do
             print(string.format("  %d. %s", i, v.link))
         end
