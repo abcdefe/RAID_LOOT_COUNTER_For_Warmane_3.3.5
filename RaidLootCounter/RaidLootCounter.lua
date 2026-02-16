@@ -141,6 +141,8 @@ local lootSelectionRows = {}
 RLC.targetPlayer = nil
 RLC.selectedLoot = nil
 RLC.selectionMode = ns.CONSTANTS.MODES.ASSIGN -- "ASSIGN", "UNASSIGN", "ROLL"
+RLC.distroMode = "MS+1"
+RLC.tempDistroMode = "MS+1"
 
 -- ============================================================================
 -- 2. 数据管理 (Data Management)
@@ -149,6 +151,7 @@ RLC.selectionMode = ns.CONSTANTS.MODES.ASSIGN -- "ASSIGN", "UNASSIGN", "ROLL"
 -- 初始化数据库
 local function InitDB()
     DB.Init()
+    RLC.distroMode = DB.GetDistroMode()
 end
 
 -- 清空所有数据
@@ -158,6 +161,50 @@ local function ClearAllData()
     -- 重置Mock数据状态（Mock 本身由 LootHistory 管理）
     if RLC.ResetMockData then
         RLC:ResetMockData()
+    end
+end
+
+
+
+function RLC:UpdateDistroModeUI()
+    if RLC.distroMode == "MS+1" then
+        RLC_DistroModeFrameMSPlus1Radio:SetChecked(true)
+        RLC_DistroModeFrameMSGTOSRadio:SetChecked(false)
+    else
+        RLC_DistroModeFrameMSPlus1Radio:SetChecked(false)
+        RLC_DistroModeFrameMSGTOSRadio:SetChecked(true)
+    end
+end
+
+
+-- ============================================================================
+-- 5. 分配模式 (Distro Mode)
+-- ============================================================================
+
+function RLC:ToggleDistroMode()
+    local frame = RLC_DistroModeFrame
+    if frame:IsShown() then
+        frame:Hide()
+    else
+        RLC.tempDistroMode = RLC.distroMode -- Initialize with current saved mode
+        frame:Show()
+        RLC:UpdateDistroModeUI() -- Set radio buttons to current saved mode
+    end
+end
+
+function RLC:OnSaveDistroModeClick()
+    RLC:SetDistroMode(RLC.tempDistroMode)
+    RLC_DistroModeFrame:Hide()
+end
+
+function RLC:SetDistroMode(mode)
+    RLC.distroMode = mode
+    DB.SetDistroMode(mode)
+    -- This function call implies RLC:UpdateUIText() should exist. It updates the button in the main frame.
+    -- Since it's not defined elsewhere, we assume it's part of another change or should be added.
+    -- For now, we are adding the functions from the request. The text update logic is in InitUI.
+    if RaidLootCounterFrameDistroModeButton then 
+        RaidLootCounterFrameDistroModeButton:SetText(L["DISTRO_MODE"] .. ": " .. RLC.distroMode) 
     end
 end
 
@@ -223,8 +270,10 @@ function RLC:SendLootUpdate(playerName, newCount, isAdd, itemLink, isOS)
     local osCount = playerData and playerData.osCount or 0
     
     -- 2. 发送 Total 信息
-    local totalMsg = "Total: MS " .. msCount
-    SendChatMessage(totalMsg, "RAID_WARNING")
+    if RLC.distroMode ~= "MS>OS" then
+        local totalMsg = "Total: MS " .. msCount
+        SendChatMessage(totalMsg, "RAID_WARNING")
+    end
     
     -- 3. 发送 MS 和 OS 装备列表
     local items = GetPlayerItems(playerName)
@@ -299,7 +348,12 @@ function RLC:SendToRaid()
         Chat.SendRaidOrPrint("[" .. displayClass .. "]", "RAID_WARNING")
         
         for _, player in ipairs(players) do
-            local msg = player.name .. ": MS:" .. player.msCount
+            local msg
+            if RLC.distroMode == "MS>OS" then
+                msg = player.name
+            else
+                msg = player.name .. ": MS:" .. player.msCount
+            end
             Chat.SendRaidOrPrint(msg, "RAID_WARNING")
             
             local items = GetPlayerItems(player.name)
@@ -680,6 +734,8 @@ end
 -- 5. 交互事件处理 (Event Handlers)
 -- ============================================================================
 
+
+
 function RLC:OnSyncClick()
     if GetNumRaidMembers() == 0 then
         print("|cffff0000[RaidLootCounter]|r " .. L["MSG_NOT_IN_RAID"])
@@ -735,62 +791,40 @@ function RLC:OnStartRollCaptureClick()
 end
 
 function RLC:OnStopRollCaptureClick()
-    Roll.StopAndAnnounce()
-end
+    if not Roll.IsActive() then
+        Roll.StopAndAnnounce()
+        return
+    end
 
-function RLC:OnMinimizeClick()
-    if RaidLootCounterFrame then
-        RaidLootCounterFrame:Hide()
-    end
-    if RLCLootSelectionFrame then
-        RLCLootSelectionFrame:Hide()
-    end
-    if RLC_PinFrame then
-        RLC_PinFrame:Show()
-    end
-end
+    if RLC.stopRollFrame then return end
 
-function RLC:OnMaximizeClick()
-    if RLC_PinFrame then
-        RLC_PinFrame:Hide()
-    end
-    if RaidLootCounterFrame then
-        RaidLootCounterFrame:Show()
-        RaidLootCounterFrame:ClearAllPoints()
-        RaidLootCounterFrame:SetPoint("CENTER")
-    end
-end
+    Chat.SendRaidOrPrint(L["MSG_STOP_ROLL_COUNTDOWN"], "RAID_WARNING")
+    
+    RLC.stopRollFrame = CreateFrame("Frame")
+    RLC.stopRollFrame.timeLeft = 3
+    RLC.stopRollFrame.timeSinceLastUpdate = 0
+    
+    RLC.stopRollFrame:SetScript("OnUpdate", function(self, elapsed)
+        if not Roll.IsActive() then
+            self:SetScript("OnUpdate", nil)
+            RLC.stopRollFrame = nil
+            return
+        end
 
-function RLC:OnMinimizeClick()
-    if RaidLootCounterFrame then
-        RaidLootCounterFrame:Hide()
-    end
-    if RLCLootSelectionFrame then
-        RLCLootSelectionFrame:Hide()
-    end
-    if RLC_PinFrame then
-        RLC_PinFrame:Show()
-    end
-end
-
-function RLC:OnMaximizeClick()
-    if RLC_PinFrame then
-        RLC_PinFrame:Hide()
-    end
-    if RaidLootCounterFrame then
-        RaidLootCounterFrame:Show()
-        RaidLootCounterFrame:ClearAllPoints()
-        RaidLootCounterFrame:SetPoint("CENTER")
-    end
-end
-
-function RLC:OnViewLootClick()
-    if RaidLootCounterLootHistoryFrame:IsShown() then
-        RaidLootCounterLootHistoryFrame:Hide()
-    else
-        RaidLootCounterLootHistoryFrame:Show()
-        RLC:RefreshLootHistory()
-    end
+        self.timeSinceLastUpdate = self.timeSinceLastUpdate + elapsed
+        if self.timeSinceLastUpdate >= 1 then
+            self.timeSinceLastUpdate = self.timeSinceLastUpdate - 1
+            
+            if self.timeLeft > 0 then
+                Chat.SendRaidOrPrint(".." .. tostring(self.timeLeft) .. "..", "RAID_WARNING")
+                self.timeLeft = self.timeLeft - 1
+            else
+                Roll.StopAndAnnounce()
+                self:SetScript("OnUpdate", nil)
+                RLC.stopRollFrame = nil
+            end
+        end
+    end)
 end
 
 function RLC:OnLootSelectionRowClick(row)
@@ -954,6 +988,14 @@ local function InitUI()
     if RaidLootCounterFrameClearButton then RaidLootCounterFrameClearButton:SetText(L["CLEAR_DATA"]) end
     if RaidLootCounterFrameSendButton then RaidLootCounterFrameSendButton:SetText(L["SEND_STATS"]) end
     if RaidLootCounterFrameViewLootButton then RaidLootCounterFrameViewLootButton:SetText(L["VIEW_LOOT"]) end
+    if RaidLootCounterFrameDistroModeButton then RaidLootCounterFrameDistroModeButton:SetText(L["DISTRO_MODE"] .. ": " .. RLC.distroMode) end
+
+    -- Distro Mode Frame
+    if RLC_DistroModeFrameTitle then RLC_DistroModeFrameTitle:SetText(L["DISTRO_MODE_TITLE"]) end
+    if RLC_DistroModeFrameLabel then RLC_DistroModeFrameLabel:SetText(L["DISTRO_MODE_LABEL"]) end
+    if RLC_DistroModeFrameMSPlus1RadioText then RLC_DistroModeFrameMSPlus1RadioText:SetText(L["MS_PLUS_1"]) end
+    if RLC_DistroModeFrameMSGTOSRadioText then RLC_DistroModeFrameMSGTOSRadioText:SetText(L["MS_GT_OS"]) end
+    if RLC_DistroModeFrameSaveButton then RLC_DistroModeFrameSaveButton:SetText(L["BUTTON_SAVE"]) end
     if RaidLootCounterLootHistoryFrameTitle then RaidLootCounterLootHistoryFrameTitle:SetText(L["LOOT_HISTORY_TITLE"]) end
     if RaidLootCounterFrameAutoAnnounceCheckboxText then RaidLootCounterFrameAutoAnnounceCheckboxText:SetText(L["CHECKBOX_AUTO_ANNOUNCE"]) end
     if RaidLootCounterFrameAutoAnnounceCheckbox then RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce) end
@@ -990,6 +1032,10 @@ local function OnAddonLoaded(self, event, addonName)
             if RLCLootSelectionFrame then 
                 RLCLootSelectionFrame:ClearAllPoints()
                 RLCLootSelectionFrame:SetPoint("CENTER") 
+            end
+            if RLC_DINFrame then
+                RLC_DINFrame:ClearAllPoints()
+                RLC_DINFrame:SetPoint("CENTER")
             end
             print(ns.CONSTANTS.CHAT_PREFIX .. "Frames reset to center.")
             return

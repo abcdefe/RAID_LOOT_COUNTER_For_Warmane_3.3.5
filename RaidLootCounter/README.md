@@ -1,74 +1,59 @@
-# Raid Loot Counter (RLC)
+# RaidLootCounter
 
-**Raid Loot Counter** is a World of Warcraft (3.3.5a) addon designed to help raid leaders track loot distribution, manage rolls, and maintain a history of drops. It simplifies the process of ensuring fair loot distribution by tracking how many Main-Spec (MS) and Off-Spec (OS) items each raider has received.
+**Version:** 1.2.7
 
-## Features
+## 描述
 
-### 1. Raid Tracking & Sync
-- **One-Click Sync**: Quickly sync current raid members to the addon's database.
-- **Class Grouping**: Automatically groups players by class for easy overview.
-- **Loot Counts**: Displays the number of MS and OS items each player has received.
+RaidLootCounter 是一个为《魔兽世界》3.3.5版本设计的团队拾取管理插件。它旨在帮助团长和官员轻松追踪团队成员的装备拾取（MS - 主天赋，OS - 副天赋），管理roll点，并提供清晰的统计数据。
 
-### 2. Automated Loot Logging
-- **Boss & Chest Detection**: Automatically detects when a boss is looted or a chest is opened.
-- **Item Filtering**: Records Epic and Legendary items (configurable quality threshold).
-- **Difficulty Tracking**: Distinguishes between 10/25 Normal and Heroic modes.
-- **Manual Add**: Manually add items from your bags to the loot history if they were missed or traded later.
+## 主要功能
 
-### 3. Loot Assignment
-- **Visual Assignment**: Click the `+` button next to a player's name to assign loot.
-- **MS/OS Support**: Assign items as Main Spec (MS) or Off Spec (OS).
-- **Smart Sorting**: The loot list prioritizes Main Spec items for easier selection.
-- **Modification**: You can remove previously assigned items if a mistake was made.
+- **团队成员自动同步**: 自动检测并同步团队成员列表。
+- **MS/OS 拾取计数**: 记录每个团队成员获得的主天赋（MS）和副天赋（OS）装备数量。
+- **详细的拾取历史**: 在“查看掉落”窗口中，可以查看所有Boss的掉落物品、拾取者和拾取类型。
+- **手动添加装备**: 允许团长手动添加不在自动拾取列表中的物品。
+- **Roll点捕获与通报**:
+    - 通过“开启roll捕获”按钮，自动监听团队中的roll点。
+    - “停止roll捕获”后，会自动根据选定的分配模式计算并通报获胜者。
+- **可配置的分配模式**:
+    - **MS+1**: 在roll点计算中，优先考虑MS拾取次数较少的玩家。
+    - **MS>OS**: 在roll点计算中，仅根据roll点高低决定胜负，不考虑MS拾取次数。
+    - 当前模式会显示在按钮上，方便查看。
+- **一键发送统计**: 将当前所有成员的MS/OS拾取统计信息发送到团队警告频道。
+- **数据清空与重置**:
+    - “清空数据”按钮可以清除所有拾取记录。
+    - `/rlc reset` 命令可以重置所有数据和窗口位置。
+- **可最小化的界面**:
+    - 点击主窗口的 "-" 按钮，可以将主窗口最小化为一个可拖动的小图标（"+"）。
+    - 点击 "+" 图标可以恢复主窗口。
+    - 小图标的位置可以随意拖动，并会自动吸附在屏幕边缘。
 
-### 4. Roll Management
-- **Roll Capture**: Captures `/roll` results from raid chat.
-- **Active Warning**: Prevents opening new roll windows if a capture is already in progress.
-- **Smart Sorting**: Sorts rollers based on their loot history (players with fewer items get priority) and then by roll value.
-- **Announcement**: Announces the winner and roll results to the raid channel.
+## 如何使用
 
-### 5. Loot History
-- **Detailed Log**: View a history of all drops, organized by instance, difficulty, and boss.
-- **Holder Tracking**: Shows who received which item directly in the history view.
-- **BOE & Tier Detection**: Highlights Bind-on-Equip items and Tier tokens.
-- **Manual Entry**: Supports manually adding items to the history log via the "Manual Add" button.
+### 打开插件
+在聊天框中输入 `/rlc` 来打开或关闭主窗口。
 
-### 6. Reporting
-- **Raid Broadcast**: Broadcast the full loot distribution list to the raid channel with one click.
-- **Auto-Announce**: Option to automatically announce loot updates when an item is assigned.
+### 主窗口按钮
 
-### 7. Window Management
-- **Minimize/Pin**: Minimize the main window to a small "PIN" bar to save screen space while keeping it accessible.
-- **Position Reset**: Built-in command (`/rlc reset`) to reset window positions if they get lost off-screen.
-- **Center on Open**: Windows automatically center themselves when opened to prevent being lost off-screen.
+- **同步团队**: 手动与当前团队成员进行同步。
+- **清空数据**: 清空所有已记录的拾取数据（会弹出确认框）。
+- **发送统计**: 将当前的拾取统计发送到团队频道。
+- **查看掉落**: 打开历史掉落记录窗口。
+- **分配模式**:
+    - 点击打开分配模式选择窗口。
+    - 在 "MS+1" 和 "MS>OS" 中选择一个模式。
+    - 点击“保存”按钮以应用更改并关闭窗口。
+- **开启/停止roll捕获**: 用于开始和结束对团队roll点的监听。
+- **更新数量后立刻团队通知**: 勾选此项后，在手动分配装备时，会自动在团队频道通报拾取信息。
 
-## Installation
+### 最小化与恢复
 
-1. Download the addon.
-2. Extract the `RaidLootCounter` folder to your WoW installation directory:
-   `\Interface\AddOns\`
-3. Restart the game or reload the UI.
+- 点击主窗口标题栏上的 **-** 按钮，主窗口会隐藏，并显示一个可拖动的 **+** 小窗口。
+- 点击 **+** 小窗口，它会隐藏，并重新显示主窗口。
+- `/rlc reset` 命令会将主窗口和 **+** 小窗口的位置都重置到屏幕中央。
 
-## Usage
+## Slash 命令
 
-### Commands
-- `/rlc`: Open the main window.
-- `/rlc reset`: **Important**. Resets all window positions to the center of the screen. Use this if a window is missing.
-- `/rlc debug`: Injects mock data for testing purposes.
-
-### Basic Workflow
-1. **Start Raid**: Click **Sync Raid** to load current members.
-2. **Boss Kill**: Loot the boss. RLC will print detected items to the chat.
-3. **Distribute**:
-   - **Roll**: Click **Start Roll Capture**, ask for rolls, then click **Stop** to see results.
-   - **Assign**: Find the winner in the list, click `+`, select the item, and choose **MS Save** or **OS Save**.
-   - **Manual Add**: If an item wasn't detected, open Loot History -> Manual Add to insert it from your bag.
-4. **End of Raid**: Click **Send Stats** to publish the loot summary.
-
-## Supported Locales
-- English (enUS)
-- Simplified Chinese (zhCN)
-- Traditional Chinese (zhTW)
-
-## Author
-Bowen
+- `/rlc`: 打开或关闭 RaidLootCounter 主窗口。
+- `/rlc reset`: 重置插件的所有数据（拾取计数、历史记录）和所有窗口的位置。
+- `/rlc clear`: 功能同“清空数据”按钮，清除所有拾取数据。
