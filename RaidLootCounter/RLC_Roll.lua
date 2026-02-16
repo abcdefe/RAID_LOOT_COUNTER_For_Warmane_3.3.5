@@ -105,6 +105,11 @@ end
 -- 内部：排序 roll 结果
 local function SortResults(isOSRoll)
     table.sort(rollResults, function(a, b)
+        if RLC.distroMode == "MS>OS" then
+            return a.roll > b.roll
+        end
+        
+        -- Default to MS+1 logic
         if isOSRoll then
             return a.roll > b.roll
         else
@@ -128,8 +133,14 @@ local function BuildWinners(isOSRoll)
     local function GetWinnerString(res)
         local className = res.class or "Unknown"
         local displayClass = ns.CONSTANTS.ENGLISH_CLASS_NAMES[className] or className
-        return string.format("%s {%s} (%d (%d-%d)  MS: %d)",
-            res.player, displayClass, res.roll, res.min, res.max, res.msCount)
+        
+        if RLC.distroMode == "MS>OS" then
+            return string.format("%s {%s} (%d (%d-%d))", 
+                res.player, displayClass, res.roll, res.min, res.max)
+        else
+            return string.format("%s {%s} (%d (%d-%d)  MS: %d)",
+                res.player, displayClass, res.roll, res.min, res.max, res.msCount)
+        end
     end
 
     table.insert(winners, GetWinnerString(first))
@@ -137,10 +148,15 @@ local function BuildWinners(isOSRoll)
     for i = 2, #rollResults do
         local current = rollResults[i]
         local isTie = false
-        if isOSRoll then
-            isTie = current.roll == first.roll
+
+        if RLC.distroMode == "MS>OS" then
+            isTie = (current.roll == first.roll)
         else
-            isTie = (current.roll == first.roll and current.msCount == first.msCount)
+            if isOSRoll then
+                isTie = current.roll == first.roll
+            else
+                isTie = (current.roll == first.roll and current.msCount == first.msCount)
+            end
         end
 
         if isTie then
@@ -205,8 +221,14 @@ function Roll.StopAndAnnounce()
     Chat.SendRaidOrPrint("=== Raid Loot Counter " .. rollTypeStr .. " Roll Results === (" .. #rollResults .. " rolls)", "RAID_WARNING")
 
     for i, result in ipairs(rollResults) do
-        local msg = string.format("%d. %s: %d (%d-%d) [MS: %d]",
-            i, result.player, result.roll, result.min, result.max, result.msCount)
+        local msg
+        if RLC.distroMode == "MS>OS" then
+            msg = string.format("%d. %s: %d (%d-%d)",
+                i, result.player, result.roll, result.min, result.max)
+        else
+            msg = string.format("%d. %s: %d (%d-%d) [MS: %d]",
+                i, result.player, result.roll, result.min, result.max, result.msCount)
+        end
         Chat.SendRaidOrPrint(msg, "RAID_WARNING")
     end
 

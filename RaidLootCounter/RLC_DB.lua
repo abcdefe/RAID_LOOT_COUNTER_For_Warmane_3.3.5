@@ -84,6 +84,10 @@ function DB.Init()
     if not RaidLootCounterDB.players then
         RaidLootCounterDB.players = {}
     end
+
+    if not RaidLootCounterDB.distroMode then
+        RaidLootCounterDB.distroMode = "MS+1"
+    end
 end
 
 function DB.ClearAllData()
@@ -96,6 +100,14 @@ function DB.IsEmpty()
         return true
     end
     return next(RaidLootCounterDB.players) == nil
+end
+
+function DB.SetDistroMode(mode)
+    RaidLootCounterDB.distroMode = mode
+end
+
+function DB.GetDistroMode()
+    return RaidLootCounterDB.distroMode or "MS+1"
 end
 
 -- 内部：读取当前团队成员（按职业分组）

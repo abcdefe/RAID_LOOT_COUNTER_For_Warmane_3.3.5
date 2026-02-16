@@ -1,67 +1,59 @@
-# Raid Loot Counter (WoW 3.3.5a)
+# RaidLootCounter
 
-A robust addon for tracking loot distribution in raids, designed for Warmane (WotLK 3.3.5a).
+**Version:** 1.2.7
 
-## Features
+## 描述
 
-- **Raid Member Sync**: Automatically populates the list from the current raid roster, grouped by class.
-- **Loot Tracking**: Track Main Spec (MS) and Off Spec (OS) loot counts per player.
-- **Loot History**: 
-  - Automatically records all boss kills and dropped items.
-  - Displays drop times, item links, and assignments.
-  - **Smart Detection**: Identifies Tier Tokens (T7-T10) and Bind-on-Equip (BOE) items.
-  - **Class Colors**: Player names in history are colored by their class.
-- **Loot Assignment System**:
-  - Assign specific items to players directly from the drop list.
-  - Support for "Roll" management linked to specific items.
-- **Auto Announce**: (Optional) Automatically sends a Raid Warning whenever a player receives an item.
-- **Roll Capture**: 
-  - Captures `/roll` results from chat.
-  - Sorts by value and identifies the winner.
-  - Supports both English and Chinese clients.
-- **Performance**: Uses virtual scrolling (FauxScrollFrame) to handle unlimited history and loot lists without performance impact.
-- **Localization**: Fully localized for enUS, zhCN, and zhTW.
+RaidLootCounter 是一个为《魔兽世界》3.3.5版本设计的团队拾取管理插件。它旨在帮助团长和官员轻松追踪团队成员的装备拾取（MS - 主天赋，OS - 副天赋），管理roll点，并提供清晰的统计数据。
 
-## Usage
+## 主要功能
 
-### Basic Controls
-1. **Open Window**: Type `/rlc` or `/raidlootcounter`.
-2. **Sync**: Click "Sync Raid" to load current raid members.
-3. **Report**: Click "Send Stats" to broadcast the full loot table to Raid Warning channel.
+- **团队成员自动同步**: 自动检测并同步团队成员列表。
+- **MS/OS 拾取计数**: 记录每个团队成员获得的主天赋（MS）和副天赋（OS）装备数量。
+- **详细的拾取历史**: 在“查看掉落”窗口中，可以查看所有Boss的掉落物品、拾取者和拾取类型。
+- **手动添加装备**: 允许团长手动添加不在自动拾取列表中的物品。
+- **Roll点捕获与通报**:
+    - 通过“开启roll捕获”按钮，自动监听团队中的roll点。
+    - “停止roll捕获”后，会自动根据选定的分配模式计算并通报获胜者。
+- **可配置的分配模式**:
+    - **MS+1**: 在roll点计算中，优先考虑MS拾取次数较少的玩家。
+    - **MS>OS**: 在roll点计算中，仅根据roll点高低决定胜负，不考虑MS拾取次数。
+    - 当前模式会显示在按钮上，方便查看。
+- **一键发送统计**: 将当前所有成员的MS/OS拾取统计信息发送到团队警告频道。
+- **数据清空与重置**:
+    - “清空数据”按钮可以清除所有拾取记录。
+    - `/rlc reset` 命令可以重置所有数据和窗口位置。
+- **可最小化的界面**:
+    - 点击主窗口的 "-" 按钮，可以将主窗口最小化为一个可拖动的小图标（"+"）。
+    - 点击 "+" 图标可以恢复主窗口。
+    - 小图标的位置可以随意拖动，并会自动吸附在屏幕边缘。
 
-### Assigning Loot
-1. Click the `+` button next to a player's name.
-2. A window will appear listing recent unassigned loot.
-3. Select an item (items are sorted chronologically).
-   - **[Tier]** and **[BOE]** tags are displayed for relevant items.
-4. Click **MS Save** (Main Spec) or **OS Save** (Off Spec).
-5. The item is assigned to the player, and the count is updated.
+## 如何使用
 
-### Removing Loot
-1. Click the `-` button next to a player's name.
-2. Select the item you want to remove from their history.
-3. Click **Remove**.
+### 打开插件
+在聊天框中输入 `/rlc` 来打开或关闭主窗口。
 
-### Rolling for Loot
-1. Click **Start Roll Capture**.
-2. Optionally, select an item from the list to associate the roll with it.
-3. Ask raid members to roll.
-4. Click **Stop Roll Capture** to announce the winner and results.
+### 主窗口按钮
 
-### Loot History
-- Click **View Loot** to open the history window.
-- View all drops organized by Instance and Boss.
-- **Shift+Click** an item to link it in chat.
-- Hover to see item details.
+- **同步团队**: 手动与当前团队成员进行同步。
+- **清空数据**: 清空所有已记录的拾取数据（会弹出确认框）。
+- **发送统计**: 将当前的拾取统计发送到团队频道。
+- **查看掉落**: 打开历史掉落记录窗口。
+- **分配模式**:
+    - 点击打开分配模式选择窗口。
+    - 在 "MS+1" 和 "MS>OS" 中选择一个模式。
+    - 点击“保存”按钮以应用更改并关闭窗口。
+- **开启/停止roll捕获**: 用于开始和结束对团队roll点的监听。
+- **更新数量后立刻团队通知**: 勾选此项后，在手动分配装备时，会自动在团队频道通报拾取信息。
 
-## Installation
+### 最小化与恢复
 
-1. Download and extract to `Interface/AddOns/RaidLootCounter`.
-2. Ensure the folder structure is correct (`Interface/AddOns/RaidLootCounter/RaidLootCounter.toc` exists).
-3. Enable in character selection screen.
+- 点击主窗口标题栏上的 **-** 按钮，主窗口会隐藏，并显示一个可拖动的 **+** 小窗口。
+- 点击 **+** 小窗口，它会隐藏，并重新显示主窗口。
+- `/rlc reset` 命令会将主窗口和 **+** 小窗口的位置都重置到屏幕中央。
 
-## Localization Note
+## Slash 命令
 
-This addon is optimized for players using Chinese clients (zhCN) on English servers (like Warmane).
-- **UI**: Localized to your client language.
-- **Chat Capture**: Supports both "Name rolls..." (English) and "Name掷出..." (Chinese) formats.
+- `/rlc`: 打开或关闭 RaidLootCounter 主窗口。
+- `/rlc reset`: 重置插件的所有数据（拾取计数、历史记录）和所有窗口的位置。
+- `/rlc clear`: 功能同“清空数据”按钮，清除所有拾取数据。

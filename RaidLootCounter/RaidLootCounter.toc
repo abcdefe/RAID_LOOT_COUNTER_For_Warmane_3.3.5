@@ -2,7 +2,7 @@
 ## Title: Raid Loot Counter
 ## Notes: 记录团队队员拾取装备数量
 ## Author: Bowen
-## Version: 1.2.6
+## Version: 1.2.7
 ## Website: https://github.com/abcdefe/RAID_LOOT_COUNTER_For_Warmane_3.3.5
 ## SavedVariablesPerCharacter: RaidLootCounterDB
 
