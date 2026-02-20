@@ -243,6 +243,7 @@
         <Scripts>
             <OnLoad>
                 self:RegisterForDrag("LeftButton");
+                self:SetClampedToScreen(true);
             </OnLoad>
             <OnDragStart>
                 self:StartMoving();
@@ -250,37 +251,6 @@
             <OnDragStop>
                 self:StopMovingOrSizing();
             </OnDragStop>
-            <OnShow>
-                -- 确保窗口完全在屏幕内
-                local left = self:GetLeft()
-                local top = self:GetTop()
-                local width = self:GetWidth()
-                local height = self:GetHeight()
-                local screenWidth = GetScreenWidth()
-                local screenHeight = GetScreenHeight()
-
-                if left and top and width and height then
-                    local newLeft = left
-                    local newTop = top
-
-                    if newLeft &lt; 0 then
-                        newLeft = 0
-                    elseif (newLeft + width) &gt; screenWidth then
-                        newLeft = screenWidth - width
-                    end
-
-                    if newTop &gt; screenHeight then
-                        newTop = screenHeight
-                    elseif (newTop - height) &lt; 0 then
-                        newTop = height
-                    end
-                    
-                    if newLeft ~= left or newTop ~= top then
-                        self:ClearAllPoints()
-                        self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", newLeft, newTop)
-                    end
-                end
-            </OnShow>
         </Scripts>
     </Frame>
 
@@ -461,6 +431,7 @@
         <Scripts>
             <OnLoad>
                 self:RegisterForDrag("LeftButton");
+                self:SetClampedToScreen(true);
             </OnLoad>
             <OnDragStart>
                 self:StartMoving();
@@ -543,6 +514,7 @@
         <Scripts>
             <OnLoad>
                 self:RegisterForDrag("LeftButton");
+                self:SetClampedToScreen(true);
             </OnLoad>
             <OnDragStart>
                 self:StartMoving();
@@ -625,6 +597,7 @@
         <Scripts>
             <OnLoad>
                 self:RegisterForDrag("LeftButton");
+                self:SetClampedToScreen(true);
             </OnLoad>
             <OnDragStart>
                 self:StartMoving();
@@ -736,6 +709,18 @@
                 </Scripts>
             </Button>
         </Frames>
+        <Scripts>
+            <OnLoad>
+                self:RegisterForDrag("LeftButton");
+                self:SetClampedToScreen(true);
+            </OnLoad>
+            <OnDragStart>
+                self:StartMoving();
+            </OnDragStart>
+            <OnDragStop>
+                self:StopMovingOrSizing();
+            </OnDragStop>
+        </Scripts>
     </Frame>
 
 
@@ -758,7 +743,7 @@
         </Backdrop>
         <Layers>
             <Layer level="ARTWORK">
-                <FontString name="$parentTitle" inherits="GameFontNormal" text="RLC-DIN">
+                <FontString name="$parentTitle" inherits="GameFontNormal" text="RLC-PIN">
                     <Anchors>
                         <Anchor point="TOP" relativePoint="TOP">
                             <Offset x="-10" y="-12"/>
@@ -856,6 +841,7 @@
         <Scripts>
             <OnLoad>
                 self:RegisterForDrag("LeftButton");
+                self:SetClampedToScreen(true);
             </OnLoad>
             <OnDragStart>
                 self:StartMoving();

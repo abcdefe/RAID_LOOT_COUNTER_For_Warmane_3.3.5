@@ -6,6 +6,11 @@ local addonName, ns = ...
 
 ns.CONSTANTS = {}
 
+-- Cache for item properties to improve performance
+ns.ItemCache = {}
+
+-- 职业颜色配置
+
 -- 职业颜色配置
 ns.CONSTANTS.CLASS_COLORS = {
     ["WARRIOR"] = {r = 0.78, g = 0.61, b = 0.43},
@@ -68,6 +73,11 @@ ns.CONSTANTS.INSTANCE_ABBREVIATIONS = ns.L["INSTANCE_ABBREVIATIONS"] or {}
 -- 掉落记录配置
 ns.CONSTANTS.LOOT_CONFIG = {
     MIN_QUALITY = 4, -- Epic
+    EXCLUDED_ITEM_IDS = {
+        [20725] = true, -- Nexus Crystal
+        [34057] = true, -- Abyss Crystal  
+        [22450] = true, -- Greater Planar Essence
+    },
 }
 
 -- 掉落类型常量
@@ -152,6 +162,19 @@ end
 -- ============================================================================
 
 ns.LootUtil = {}
+
+-- 从物品链接中提取物品ID
+function ns.LootUtil.GetItemID(itemLink)
+    if not itemLink then return nil end
+    local itemID = string.match(itemLink, "item:(%d+):")
+    return itemID and tonumber(itemID) or nil
+end
+
+-- 检查物品是否应该被排除
+function ns.LootUtil.IsItemExcluded(itemLink)
+    local itemID = ns.LootUtil.GetItemID(itemLink)
+    return itemID and ns.CONSTANTS.LOOT_CONFIG.EXCLUDED_ITEM_IDS[itemID] or false
+end
 
 -- 统一规范化掉落条目结构，兼容旧的字符串格式
 function ns.LootUtil.NormalizeLootItem(lootTable, index)

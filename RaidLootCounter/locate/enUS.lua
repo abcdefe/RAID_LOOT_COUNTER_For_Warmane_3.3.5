@@ -14,7 +14,8 @@ local enUS = {
     ["MS_GT_OS"] = "MS>OS",
     ["LOOT_HISTORY_TITLE"] = "Loot History",
     ["NO_LOOT"] = "No loot",
-    ["CHEST_OR_UNKNOWN"] = "Chest",
+    ["UNKNOWN_BOSS"] = "Unknown Boss",
+    ["UNKNOWN_INSTANCE"] = "Unknown Instance",
     ["LOOTED_PREFIX"] = "Looted: ",
     
     ["MSG_NOT_IN_RAID"] = "You are not in a raid group.",

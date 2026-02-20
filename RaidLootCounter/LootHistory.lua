@@ -47,6 +47,12 @@ function RLC:RefreshLootHistory()
         return
     end
     
+    RLC:BuildHistoryData()
+    RLC:UpdateLootHistoryScroll()
+end
+
+-- Helper function to build history data
+function RLC:BuildHistoryData()
     -- Convert map to list and group data
     local instances = {} -- 副本名称 -> { 难度 -> { boss列表 } }
     local hasData = false
@@ -81,11 +87,14 @@ function RLC:RefreshLootHistory()
     
     if not hasData then
         table.insert(RLC.lootHistoryData, { text = L["MSG_NO_DATA"] or "No data" })
-        RLC:UpdateLootHistoryScroll()
         return
     end
     
-    -- Flatten Data
+    RLC:FlattenHistoryData(instances)
+end
+
+-- Helper function to flatten history data
+function RLC:FlattenHistoryData(instances)
     local sortedInstances = {}
     for inst in pairs(instances) do table.insert(sortedInstances, inst) end
     table.sort(sortedInstances)
@@ -159,8 +168,6 @@ function RLC:RefreshLootHistory()
         end
         table.insert(RLC.lootHistoryData, { text = "" }) -- Instance Spacer
     end
-    
-    RLC:UpdateLootHistoryScroll()
 end
 
 function RLC:UpdateLootHistoryScroll()
