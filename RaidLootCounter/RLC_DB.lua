@@ -13,6 +13,7 @@ local LOOT_TYPE = ns.CONSTANTS.LOOT_TYPE
 
 local RESERVED_KEYS = {
     autoAnnounce = true,
+    stopRollCountdown = true,
     lootedBosses = true,
     players = true,
     meta = true,
@@ -73,8 +74,32 @@ function DB.Init()
         RaidLootCounterDB.meta.version = CURRENT_DB_VERSION
     end
 
+    -- Data validation
+    if RaidLootCounterDB.players then
+        for name, data in pairs(RaidLootCounterDB.players) do
+            if type(data) ~= "table" then
+                RaidLootCounterDB.players[name] = nil
+            else
+                if data.msCount and type(data.msCount) ~= "number" then data.msCount = 0 end
+                if data.osCount and type(data.osCount) ~= "number" then data.osCount = 0 end
+            end
+        end
+    end
+
+    if RaidLootCounterDB.lootedBosses then
+        for guid, data in pairs(RaidLootCounterDB.lootedBosses) do
+            if type(data) ~= "table" or not data.name then
+                RaidLootCounterDB.lootedBosses[guid] = nil
+            end
+        end
+    end
+
     if RaidLootCounterDB.autoAnnounce == nil then
         RaidLootCounterDB.autoAnnounce = true
+    end
+
+    if RaidLootCounterDB.stopRollCountdown == nil then
+        RaidLootCounterDB.stopRollCountdown = true
     end
 
     if not RaidLootCounterDB.lootedBosses then
