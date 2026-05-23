@@ -31,8 +31,10 @@ local zhCN = {
     
     -- Note: OUTPUT_ keys are intentionally OMITTED to fallback to English
     
-    ["CHECKBOX_AUTO_ANNOUNCE"] = "更新数量后立刻团队通知",
-
+    ["CHECKBOX_AUTO_ANNOUNCE"] = "更新数量后立刻通知",
+    ["CHECKBOX_STOP_ROLL_COUNTDOWN"] = "开启倒计时",
+    ["STOP_ROLL_COUNTDOWN_ON"] = "倒计时已启用。",
+    ["STOP_ROLL_COUNTDOWN_OFF"] = "倒计时已禁用。",
     ["START_ROLL_CAPTURE"] = "开启roll捕获",
     ["STOP_ROLL_CAPTURE"] = "停止roll捕获",
 

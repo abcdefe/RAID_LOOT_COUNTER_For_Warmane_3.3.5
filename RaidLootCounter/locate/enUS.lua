@@ -35,7 +35,10 @@ local enUS = {
     ["OUTPUT_REMOVE"] = "Remove",
     ["OUTPUT_TOTAL"] = "Total:",
     
-    ["CHECKBOX_AUTO_ANNOUNCE"] = "Update immediately notify raid",
+    ["CHECKBOX_AUTO_ANNOUNCE"] = "Update immediately notify",
+    ["CHECKBOX_STOP_ROLL_COUNTDOWN"] = "Enable countdown",
+    ["STOP_ROLL_COUNTDOWN_ON"] = "Stop countdown enabled.",
+    ["STOP_ROLL_COUNTDOWN_OFF"] = "Stop countdown disabled.",
 
     ["START_ROLL_CAPTURE"] = "Start Roll Capture",
     ["STOP_ROLL_CAPTURE"] = "Stop Roll Capture",

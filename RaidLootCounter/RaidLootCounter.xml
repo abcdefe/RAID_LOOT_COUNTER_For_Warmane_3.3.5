@@ -215,9 +215,22 @@
                 </Scripts>
             </Button>
 
-            <CheckButton name="$parentAutoAnnounceCheckbox" inherits="OptionsCheckButtonTemplate">
+            <CheckButton name="$parentStopRollCountdownCheckbox" inherits="OptionsCheckButtonTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="$parentStopRollCaptureButton" relativePoint="TOPRIGHT" x="10" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnStopRollCountdownClick then
+                            RLC:OnStopRollCountdownClick(self)
+                        end
+                    </OnClick>
+                </Scripts>
+            </CheckButton>
+
+            <CheckButton name="$parentAutoAnnounceCheckbox" inherits="OptionsCheckButtonTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parentStopRollCountdownCheckbox" relativePoint="TOPRIGHT" x="100" y="0"/>
                 </Anchors>
                 <Scripts>
                     <OnClick>

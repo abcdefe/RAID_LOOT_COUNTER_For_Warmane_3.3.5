@@ -784,6 +784,18 @@ function RLC:OnAutoAnnounceClick(checkbox)
     end
 end
 
+function RLC:OnStopRollCountdownClick(checkbox)
+    if not checkbox then return end
+
+    if checkbox:GetChecked() then
+        RaidLootCounterDB.stopRollCountdown = true
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["STOP_ROLL_COUNTDOWN_ON"])
+    else
+        RaidLootCounterDB.stopRollCountdown = false
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["STOP_ROLL_COUNTDOWN_OFF"])
+    end
+end
+
 function RLC:OnStartRollCaptureClick()
     -- 检查是否已在进行 Roll 捕获
     if Roll.IsActive() then
@@ -797,6 +809,11 @@ end
 
 function RLC:OnStopRollCaptureClick()
     if not Roll.IsActive() then
+        Roll.StopAndAnnounce()
+        return
+    end
+
+    if not RaidLootCounterDB.stopRollCountdown then
         Roll.StopAndAnnounce()
         return
     end
@@ -1003,6 +1020,8 @@ local function InitUI()
     if RLC_DistroModeFrameMSGTOSRadioText then RLC_DistroModeFrameMSGTOSRadioText:SetText(L["MS_GT_OS"]) end
     if RLC_DistroModeFrameSaveButton then RLC_DistroModeFrameSaveButton:SetText(L["BUTTON_SAVE"]) end
     if RaidLootCounterLootHistoryFrameTitle then RaidLootCounterLootHistoryFrameTitle:SetText(L["LOOT_HISTORY_TITLE"]) end
+    if RaidLootCounterFrameStopRollCountdownCheckboxText then RaidLootCounterFrameStopRollCountdownCheckboxText:SetText(L["CHECKBOX_STOP_ROLL_COUNTDOWN"]) end
+    if RaidLootCounterFrameStopRollCountdownCheckbox then RaidLootCounterFrameStopRollCountdownCheckbox:SetChecked(RaidLootCounterDB.stopRollCountdown) end
     if RaidLootCounterFrameAutoAnnounceCheckboxText then RaidLootCounterFrameAutoAnnounceCheckboxText:SetText(L["CHECKBOX_AUTO_ANNOUNCE"]) end
     if RaidLootCounterFrameAutoAnnounceCheckbox then RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce) end
     if RaidLootCounterFrameStartRollCaptureButton then RaidLootCounterFrameStartRollCaptureButton:SetText(L["START_ROLL_CAPTURE"]) end

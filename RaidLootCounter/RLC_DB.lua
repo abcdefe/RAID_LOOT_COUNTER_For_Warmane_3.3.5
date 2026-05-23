@@ -13,6 +13,7 @@ local LOOT_TYPE = ns.CONSTANTS.LOOT_TYPE
 
 local RESERVED_KEYS = {
     autoAnnounce = true,
+    stopRollCountdown = true,
     lootedBosses = true,
     players = true,
     meta = true,
@@ -95,6 +96,10 @@ function DB.Init()
 
     if RaidLootCounterDB.autoAnnounce == nil then
         RaidLootCounterDB.autoAnnounce = true
+    end
+
+    if RaidLootCounterDB.stopRollCountdown == nil then
+        RaidLootCounterDB.stopRollCountdown = true
     end
 
     if not RaidLootCounterDB.lootedBosses then
