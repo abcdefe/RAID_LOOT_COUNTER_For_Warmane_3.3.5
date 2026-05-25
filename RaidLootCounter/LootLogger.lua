@@ -51,7 +51,7 @@ local function OnLootOpened()
     else
         -- 情况B: 无目标 (通常是宝箱)
         local subZone = GetSubZoneText() or ""
-        if subZone == "" then subZone = GetMinimapZoneText() or ns.CONSTANTS.DEFAULTS.UNKNOWN_CLASS end
+        if subZone == "" then subZone = GetMinimapZoneText() or (L["UNKNOWN_CLASS"] or "Unknown") end
         
         bossName = (L["CHEST_OR_UNKNOWN"] or "Chest") .. " - " .. subZone .. difficultyName
         
@@ -101,13 +101,16 @@ local function OnLootOpened()
             
             -- Only record Epic (4) and Legendary (5) quality items
             if lootLink and quality and quality >= ns.CONSTANTS.LOOT_CONFIG.MIN_QUALITY then
-                table.insert(lootData.loot, {
-                    link = lootLink,
-                    holder = nil,
-                    type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
-                    isBOE = ns.IsItemBOE(lootLink)
-                })
-                hasValidLoot = true
+                -- 检查是否为排除的物品
+                if not ns.LootUtil.IsItemExcluded(lootLink) then
+                    table.insert(lootData.loot, {
+                        link = lootLink,
+                        holder = nil,
+                        type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
+                        isBOE = ns.IsItemBOE(lootLink)
+                    })
+                    hasValidLoot = true
+                end
             end
         end
     end

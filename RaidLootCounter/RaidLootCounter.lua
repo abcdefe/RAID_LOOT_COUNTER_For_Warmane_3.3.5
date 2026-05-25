@@ -16,29 +16,8 @@ local DB = ns.DB
 -- ============================================================================
 -- 0. 工具模块 (LootUtil) - 定义在此处以确保可用
 -- ============================================================================
-local LootUtil = {}
-ns.LootUtil = LootUtil
-
-function LootUtil.NormalizeLootItem(lootTable, index)
-    if not lootTable or not index then return nil end
-    local item = lootTable[index]
-    if type(item) ~= "table" then
-        -- Convert old string format to table format
-        local newItem = {
-            link = item,
-            holder = nil,
-            type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
-            isBOE = ns.IsItemBOE(item)
-        }
-        lootTable[index] = newItem
-        return newItem
-    end
-    -- Ensure type field exists
-    if not item.type then
-        item.type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN
-    end
-    return item
-end
+-- Note: LootUtil is now defined in Constants.lua to avoid duplication
+local LootUtil = ns.LootUtil
 
 -- ============================================================================
 -- 1. 常量与变量 (Constants & Globals)
@@ -51,6 +30,11 @@ local ENGLISH_CLASS_NAMES = ns.CONSTANTS.ENGLISH_CLASS_NAMES
 local tooltipScanner
 function ns.IsItemBOE(itemLink)
     if not itemLink then return false end
+    
+    -- Check cache first
+    if ns.ItemCache[itemLink] and ns.ItemCache[itemLink].isBOE ~= nil then
+        return ns.ItemCache[itemLink].isBOE
+    end
     
     if not tooltipScanner then
         tooltipScanner = CreateFrame("GameTooltip", "RLCScannerTooltip", nil, "GameTooltipTemplate")
@@ -65,11 +49,15 @@ function ns.IsItemBOE(itemLink)
         if line then
             local text = line:GetText()
             if text and text == ITEM_BIND_ON_EQUIP then
+                ns.ItemCache[itemLink] = ns.ItemCache[itemLink] or {}
+                ns.ItemCache[itemLink].isBOE = true
                 return true
             end
         end
     end
     
+    ns.ItemCache[itemLink] = ns.ItemCache[itemLink] or {}
+    ns.ItemCache[itemLink].isBOE = false
     return false
 end
 
@@ -77,18 +65,29 @@ end
 function ns.GetItemTier(itemLink)
     if not itemLink then return nil end
     
+    -- Check cache first
+    if ns.ItemCache[itemLink] and ns.ItemCache[itemLink].tier ~= nil then
+        return ns.ItemCache[itemLink].tier
+    end
+
     local itemName = GetItemInfo(itemLink)
     if not itemName then 
         -- Fallback to extracting name from link if not cached
         itemName = string.match(itemLink, "%[([^%]]+)%]")
     end
     
-    if not itemName then return nil end
+    if not itemName then 
+        ns.ItemCache[itemLink] = ns.ItemCache[itemLink] or {}
+        ns.ItemCache[itemLink].tier = nil
+        return nil 
+    end
 
     -- 1. Check for Token Patterns
     for tier, patterns in pairs(ns.CONSTANTS.TIER_PATTERNS) do
         for _, pattern in ipairs(patterns) do
             if string.find(itemName, pattern) then
+                ns.ItemCache[itemLink] = ns.ItemCache[itemLink] or {}
+                ns.ItemCache[itemLink].tier = tier
                 return tier
             end
         end
@@ -116,6 +115,8 @@ function ns.GetItemTier(itemLink)
                     -- Check if line contains any of our known keys
                     for key, tier in pairs(ns.CONSTANTS.TIER_SETS) do
                         if string.find(text, key) then
+                            ns.ItemCache[itemLink] = ns.ItemCache[itemLink] or {}
+                            ns.ItemCache[itemLink].tier = tier
                             return tier
                         end
                     end
@@ -124,9 +125,10 @@ function ns.GetItemTier(itemLink)
         end
     end
 
+    ns.ItemCache[itemLink] = ns.ItemCache[itemLink] or {}
+    ns.ItemCache[itemLink].tier = nil
     return nil
 end
-
 -- Roll点捕获变量
 local isRollCapturing = false
 local rollResults = {}
@@ -348,28 +350,31 @@ function RLC:SendToRaid()
         Chat.SendRaidOrPrint("[" .. displayClass .. "]", "RAID_WARNING")
         
         for _, player in ipairs(players) do
-            local msg
+            local msgParts = {player.name}
             if RLC.distroMode == "MS>OS" then
-                msg = player.name
+                -- No count in MS>OS mode
             else
-                msg = player.name .. ": MS:" .. player.msCount
+                table.insert(msgParts, ": MS:")
+                table.insert(msgParts, tostring(player.msCount))
             end
+            local msg = table.concat(msgParts)
             Chat.SendRaidOrPrint(msg, "RAID_WARNING")
             
             local items = GetPlayerItems(player.name)
             if #items > 0 then
-                local currentLine = "  "
+                local currentLineParts = {"  "}
                 for i, item in ipairs(items) do
                     local itemStr = item.link .. (item.type == ns.CONSTANTS.LOOT_TYPE.OS and "(OS)" or "(MS)")
-                    if string.len(currentLine) + string.len(itemStr) > 250 then
-                        Chat.SendRaidOrPrint(currentLine, "RAID_WARNING")
-                        currentLine = "  " .. itemStr
+                    if string.len(table.concat(currentLineParts)) + string.len(itemStr) > 250 then
+                        Chat.SendRaidOrPrint(table.concat(currentLineParts), "RAID_WARNING")
+                        currentLineParts = {"  ", itemStr}
                     else
-                        currentLine = currentLine .. itemStr .. " "
+                        table.insert(currentLineParts, itemStr)
+                        table.insert(currentLineParts, " ")
                     end
                 end
-                if currentLine ~= "  " then
-                    Chat.SendRaidOrPrint(currentLine, "RAID_WARNING")
+                if #currentLineParts > 1 then
+                    Chat.SendRaidOrPrint(table.concat(currentLineParts), "RAID_WARNING")
                 end
             end
         end
@@ -779,6 +784,18 @@ function RLC:OnAutoAnnounceClick(checkbox)
     end
 end
 
+function RLC:OnStopRollCountdownClick(checkbox)
+    if not checkbox then return end
+
+    if checkbox:GetChecked() then
+        RaidLootCounterDB.stopRollCountdown = true
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["STOP_ROLL_COUNTDOWN_ON"])
+    else
+        RaidLootCounterDB.stopRollCountdown = false
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["STOP_ROLL_COUNTDOWN_OFF"])
+    end
+end
+
 function RLC:OnStartRollCaptureClick()
     -- 检查是否已在进行 Roll 捕获
     if Roll.IsActive() then
@@ -792,6 +809,11 @@ end
 
 function RLC:OnStopRollCaptureClick()
     if not Roll.IsActive() then
+        Roll.StopAndAnnounce()
+        return
+    end
+
+    if not RaidLootCounterDB.stopRollCountdown then
         Roll.StopAndAnnounce()
         return
     end
@@ -828,6 +850,7 @@ function RLC:OnStopRollCaptureClick()
 end
 
 function RLC:OnLootSelectionRowClick(row)
+    if not row or not row.data then return end
     if IsShiftKeyDown() then
         if ChatEdit_InsertLink and row.data and row.data.link then
             local _, itemLink = GetItemInfo(row.data.link)
@@ -841,7 +864,7 @@ function RLC:OnLootSelectionRowClick(row)
     end
 
     for _, r in pairs(lootSelectionRows) do
-        if r.highlight then r.highlight:Hide() end
+        if r and r.highlight then r.highlight:Hide() end
     end
     
     if row.highlight then row.highlight:Show() end
@@ -997,6 +1020,8 @@ local function InitUI()
     if RLC_DistroModeFrameMSGTOSRadioText then RLC_DistroModeFrameMSGTOSRadioText:SetText(L["MS_GT_OS"]) end
     if RLC_DistroModeFrameSaveButton then RLC_DistroModeFrameSaveButton:SetText(L["BUTTON_SAVE"]) end
     if RaidLootCounterLootHistoryFrameTitle then RaidLootCounterLootHistoryFrameTitle:SetText(L["LOOT_HISTORY_TITLE"]) end
+    if RaidLootCounterFrameStopRollCountdownCheckboxText then RaidLootCounterFrameStopRollCountdownCheckboxText:SetText(L["CHECKBOX_STOP_ROLL_COUNTDOWN"]) end
+    if RaidLootCounterFrameStopRollCountdownCheckbox then RaidLootCounterFrameStopRollCountdownCheckbox:SetChecked(RaidLootCounterDB.stopRollCountdown) end
     if RaidLootCounterFrameAutoAnnounceCheckboxText then RaidLootCounterFrameAutoAnnounceCheckboxText:SetText(L["CHECKBOX_AUTO_ANNOUNCE"]) end
     if RaidLootCounterFrameAutoAnnounceCheckbox then RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce) end
     if RaidLootCounterFrameStartRollCaptureButton then RaidLootCounterFrameStartRollCaptureButton:SetText(L["START_ROLL_CAPTURE"]) end
@@ -1008,12 +1033,70 @@ local function InitUI()
     if RLCManualAddFrameSaveButton then RLCManualAddFrameSaveButton:SetText(L["BUTTON_SAVE"]) end
 end
 
+local function CreateMinimapIcon()
+    if RLCMinimapButton or not Minimap then return end
+
+    local button = CreateFrame("Button", "RLCMinimapButton", Minimap)
+    button:SetFrameStrata("MEDIUM")
+    button:SetWidth(28)
+    button:SetHeight(28)
+    button:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 0, 0)
+    button:SetFrameLevel(Minimap:GetFrameLevel() + 2)
+    button:RegisterForClicks("LeftButtonUp")
+
+    button:SetNormalTexture("Interface\\Icons\\Achievement_Pvp_A_06")
+    -- UICreateMinimapButton("RLCMinimapButton", "Interface\\Icons\\Achievement_Pvp_A_06", 20);
+    local normal = button:GetNormalTexture()
+    if normal then
+        normal:SetAllPoints(button)
+        -- normal:SetVertexColor(1, 0.1, 0.1, 1)
+    end
+
+    button:SetHighlightTexture("Interface\\Icons\\Achievement_Pvp_A_06")
+    local highlight = button:GetHighlightTexture()
+    if highlight then
+        highlight:SetAllPoints(button)
+    end
+
+    button:SetScript("OnClick", function()
+        if RaidLootCounterFrame then
+            RaidLootCounterFrame:Show()
+            if RLC.RefreshDisplay then
+                RLC:RefreshDisplay()
+            end
+        end
+    end)
+
+    button:SetScript("OnEnter", function(self)
+        if GameTooltip then
+            GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+            GameTooltip:SetText(L["WINDOW_TITLE"] or ADDON_NAME)
+            GameTooltip:AddLine(L["TOOLTIP_CLICK_MINIMAP"] or "Click to open Raid Loot Counter", 1, 1, 1)
+            GameTooltip:Show()
+        end
+    end)
+
+    button:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+end
+
 local function OnAddonLoaded(self, event, addonName)
 
     if addonName ~= ADDON_NAME then return end
     
     InitDB()
     InitUI()
+    CreateMinimapIcon()
+    
+    -- Add keyboard shortcuts
+    RaidLootCounterFrame:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:Hide()
+        end
+    end)
     
     SLASH_RLC1 = "/rlc"
     SlashCmdList["RLC"] = function(msg)
@@ -1056,6 +1139,10 @@ local function OnAddonLoaded(self, event, addonName)
         OnAccept = function()
             ClearAllData()
             RLC:RefreshDisplay()
+            -- Also refresh loot history if it's open
+            if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
+                RLC:RefreshLootHistory()
+            end
             print("|cff00ff00[RaidLootCounter]|r " .. L["MSG_DATA_CLEARED"])
         end,
         timeout = 0,

@@ -31,7 +31,10 @@ local zhTW = {
     
     -- Note: OUTPUT_ keys are intentionally OMITTED to fallback to English
     
-    ["CHECKBOX_AUTO_ANNOUNCE"] = "更新數量後立刻團隊通知",
+    ["CHECKBOX_AUTO_ANNOUNCE"] = "更新數量後立刻通知",
+    ["CHECKBOX_STOP_ROLL_COUNTDOWN"] = "開啟倒計時",
+    ["STOP_ROLL_COUNTDOWN_ON"] = "倒計時已啟用。",
+    ["STOP_ROLL_COUNTDOWN_OFF"] = "倒計時已停用。",
 
     ["START_ROLL_CAPTURE"] = "開啟roll捕獲",
     ["STOP_ROLL_CAPTURE"] = "停止roll捕獲",
