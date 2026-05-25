@@ -1098,6 +1098,13 @@ local function OnAddonLoaded(self, event, addonName)
         end
     end)
     
+    -- Add keyboard shortcuts
+    RaidLootCounterFrame:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:Hide()
+        end
+    end)
+    
     SLASH_RLC1 = "/rlc"
     SlashCmdList["RLC"] = function(msg)
         if msg == "debug" then
