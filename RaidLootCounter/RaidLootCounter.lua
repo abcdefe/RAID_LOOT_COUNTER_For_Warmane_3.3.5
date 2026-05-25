@@ -1033,12 +1033,70 @@ local function InitUI()
     if RLCManualAddFrameSaveButton then RLCManualAddFrameSaveButton:SetText(L["BUTTON_SAVE"]) end
 end
 
+local function CreateMinimapIcon()
+    if RLCMinimapButton or not Minimap then return end
+
+    local button = CreateFrame("Button", "RLCMinimapButton", Minimap)
+    button:SetFrameStrata("MEDIUM")
+    button:SetWidth(28)
+    button:SetHeight(28)
+    button:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 0, 0)
+    button:SetFrameLevel(Minimap:GetFrameLevel() + 2)
+    button:RegisterForClicks("LeftButtonUp")
+
+    button:SetNormalTexture("Interface\\Icons\\Achievement_Pvp_A_06")
+    -- UICreateMinimapButton("RLCMinimapButton", "Interface\\Icons\\Achievement_Pvp_A_06", 20);
+    local normal = button:GetNormalTexture()
+    if normal then
+        normal:SetAllPoints(button)
+        -- normal:SetVertexColor(1, 0.1, 0.1, 1)
+    end
+
+    button:SetHighlightTexture("Interface\\Icons\\Achievement_Pvp_A_06")
+    local highlight = button:GetHighlightTexture()
+    if highlight then
+        highlight:SetAllPoints(button)
+    end
+
+    button:SetScript("OnClick", function()
+        if RaidLootCounterFrame then
+            RaidLootCounterFrame:Show()
+            if RLC.RefreshDisplay then
+                RLC:RefreshDisplay()
+            end
+        end
+    end)
+
+    button:SetScript("OnEnter", function(self)
+        if GameTooltip then
+            GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+            GameTooltip:SetText(L["WINDOW_TITLE"] or ADDON_NAME)
+            GameTooltip:AddLine(L["TOOLTIP_CLICK_MINIMAP"] or "Click to open Raid Loot Counter", 1, 1, 1)
+            GameTooltip:Show()
+        end
+    end)
+
+    button:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+end
+
 local function OnAddonLoaded(self, event, addonName)
 
     if addonName ~= ADDON_NAME then return end
     
     InitDB()
     InitUI()
+    CreateMinimapIcon()
+    
+    -- Add keyboard shortcuts
+    RaidLootCounterFrame:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:Hide()
+        end
+    end)
     
     -- Add keyboard shortcuts
     RaidLootCounterFrame:SetScript("OnKeyDown", function(self, key)
