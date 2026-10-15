@@ -403,6 +403,13 @@ function RLC:ExportAllData()
     local lines = {}
     table.insert(lines, EXPORT.BEGIN_MARKER)
 
+    -- 导出配置（分配模式、提醒模式）
+    table.insert(lines, string.format("%s %s|%s|%s",
+        EXPORT.CONFIG_PREFIX,
+        RaidLootCounterDB.distroMode or "MS+1",
+        (RaidLootCounterDB.autoAnnounce and "true") or "false",
+        (RaidLootCounterDB.stopRollCountdown and "true") or "false"))
+
     -- 导出玩家数据
     for playerName, data in pairs(players) do
         if data and type(data) == "table" then
@@ -486,6 +493,7 @@ function RLC:ParseExportText(text)
     local result = {
         players = {},
         bosses = {},
+        settings = nil,
         stats = { players = 0, bosses = 0, items = 0 }
     }
 
@@ -502,6 +510,16 @@ function RLC:ParseExportText(text)
                         class = class
                     }
                     result.stats.players = result.stats.players + 1
+                end
+            -- 解析CONFIG行
+            elseif line:find("%[RLC:CONFIG%]") then
+                local distroMode, autoAnnounce, stopRollCountdown = line:match("%[RLC:CONFIG%]%s+([^|]+)%|([^|]+)%|([^|]+)$")
+                if distroMode and autoAnnounce and stopRollCountdown then
+                    result.settings = {
+                        distroMode = distroMode,
+                        autoAnnounce = (autoAnnounce == "true"),
+                        stopRollCountdown = (stopRollCountdown == "true")
+                    }
                 end
             -- 解析BOSS行
             elseif line:find("%[RLC:BOSS#") then
@@ -570,6 +588,29 @@ function RLC:ImportFromText(text)
             timestamp = data.timestamp,
             loot = data.loot
         }
+    end
+
+    -- 恢复配置
+    if result.settings then
+        if result.settings.distroMode then
+            RaidLootCounterDB.distroMode = result.settings.distroMode
+            RLC.distroMode = result.settings.distroMode
+            if RaidLootCounterFrameDistroModeButton then
+                RaidLootCounterFrameDistroModeButton:SetText(L["DISTRO_MODE"] .. ": " .. RLC.distroMode)
+            end
+        end
+        if result.settings.autoAnnounce ~= nil then
+            RaidLootCounterDB.autoAnnounce = result.settings.autoAnnounce
+            if RaidLootCounterFrameAutoAnnounceCheckbox then
+                RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce)
+            end
+        end
+        if result.settings.stopRollCountdown ~= nil then
+            RaidLootCounterDB.stopRollCountdown = result.settings.stopRollCountdown
+            if RaidLootCounterFrameStopRollCountdownCheckbox then
+                RaidLootCounterFrameStopRollCountdownCheckbox:SetChecked(RaidLootCounterDB.stopRollCountdown)
+            end
+        end
     end
 
     -- 刷新显示
