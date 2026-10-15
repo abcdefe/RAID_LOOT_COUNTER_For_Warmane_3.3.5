@@ -391,226 +391,324 @@ end
 
 local EXPORT = ns.CONSTANTS.EXPORT
 
--- 导出所有数据到文本
-function RLC:ExportAllData()
-    local players = RaidLootCounterDB.players or {}
-    local bosses = RaidLootCounterDB.lootedBosses or {}
+-- ============================================================================
+-- JSON 编码器 & 解码器
+-- ============================================================================
 
-    local playerCount = 0
-    local bossCount = 0
-    local itemCount = 0
-
-    local lines = {}
-    table.insert(lines, EXPORT.BEGIN_MARKER)
-
-    -- 导出配置（分配模式、提醒模式）
-    table.insert(lines, string.format("%s %s|%s|%s",
-        EXPORT.CONFIG_PREFIX,
-        RaidLootCounterDB.distroMode or "MS+1",
-        (RaidLootCounterDB.autoAnnounce and "true") or "false",
-        (RaidLootCounterDB.stopRollCountdown and "true") or "false"))
-
-    -- 导出玩家数据
-    for playerName, data in pairs(players) do
-        if data and type(data) == "table" then
-            table.insert(lines, string.format("%s %s|%s|%d|%d",
-                EXPORT.PLAYER_PREFIX, playerName, data.class or "WARRIOR",
-                data.msCount or 0, data.osCount or 0))
-            playerCount = playerCount + 1
+local function jsonEncode(value)
+    if value == nil then
+        return "null"
+    elseif type(value) == "boolean" then
+        return value and "true" or "false"
+    elseif type(value) == "number" then
+        return tostring(value)
+    elseif type(value) == "string" then
+        local escaped = value
+            :gsub("\\", "\\\\")
+            :gsub('"', '\\"')
+            :gsub("\n", "\\n")
+            :gsub("\r", "\\r")
+            :gsub("\t", "\\t")
+        return '"' .. escaped .. '"'
+    elseif type(value) == "table" then
+        local is_array = true
+        local max_index = 0
+        for k, _ in pairs(value) do
+            if type(k) ~= "number" or k < 1 then
+                is_array = false
+                break
+            end
+            if k > max_index then max_index = k end
+        end
+        if is_array and max_index > 0 then
+            local parts = {}
+            for i = 1, max_index do
+                table.insert(parts, jsonEncode(value[i]))
+            end
+            return "[" .. table.concat(parts, ",") .. "]"
+        else
+            local parts = {}
+            for k, v in pairs(value) do
+                table.insert(parts, jsonEncode(tostring(k)) .. ":" .. jsonEncode(v))
+            end
+            return "{" .. table.concat(parts, ",") .. "}"
         end
     end
+    return "null"
+end
 
-    -- 导出Boss和物品数据
-    local bossIndex = 0
-    for _, data in pairs(bosses) do
-        if data and type(data) == "table" and data.loot then
-            bossIndex = bossIndex + 1
-            table.insert(lines, string.format("%s%d] %s|%s|%d",
-                EXPORT.BOSS_PREFIX, bossIndex, data.name or "Unknown",
-                data.instance or "Unknown", data.timestamp or 0))
-            bossCount = bossCount + 1
+local function jsonDecode(str)
+    local pos = 1
 
-            for _, itemData in ipairs(data.loot) do
-                local link, holder, itemType
-                if type(itemData) == "table" then
-                    link = itemData.link
-                    holder = itemData.holder
-                    itemType = itemData.type or "UNASSIGN"
-                else
-                    link = itemData
-                    holder = nil
-                    itemType = "UNASSIGN"
-                end
+    local parseValue  -- 前向声明，解决相互递归
 
-                if link then
-                    local holderStr = holder or EXPORT.UNASSIGNED_HOLDER
-                    table.insert(lines, string.format("%s%d] %s|%s|%s",
-                        EXPORT.ITEM_PREFIX, bossIndex, link, holderStr, itemType))
-                    itemCount = itemCount + 1
-                end
+    local function skipWS()
+        while pos <= #str do
+            local c = str:sub(pos, pos)
+            if c == ' ' or c == '\t' or c == '\n' or c == '\r' then
+                pos = pos + 1
+            else
+                break
             end
         end
     end
 
-    table.insert(lines, EXPORT.END_MARKER)
-    local exportText = table.concat(lines, "\n")
+    local function parseString()
+        pos = pos + 1
+        local result = ""
+        while pos <= #str do
+            local c = str:sub(pos, pos)
+            if c == '"' then
+                pos = pos + 1
+                return result
+            elseif c == '\\' then
+                pos = pos + 1
+                local esc = str:sub(pos, pos)
+                if esc == 'n' then result = result .. '\n'
+                elseif esc == 'r' then result = result .. '\r'
+                elseif esc == 't' then result = result .. '\t'
+                elseif esc == '"' then result = result .. '"'
+                elseif esc == '\\' then result = result .. '\\'
+                elseif esc == '/' then result = result .. '/'
+                else result = result .. esc end
+                pos = pos + 1
+            else
+                result = result .. c
+                pos = pos + 1
+            end
+        end
+        return result
+    end
+
+    local function parseNumber()
+        local start = pos
+        while pos <= #str do
+            local c = str:sub(pos, pos)
+            if (c >= '0' and c <= '9') or c == '-' or c == '.' or c == 'e' or c == 'E' or c == '+' then
+                pos = pos + 1
+            else
+                break
+            end
+        end
+        return tonumber(str:sub(start, pos - 1))
+    end
+
+    local function parseObject()
+        pos = pos + 1
+        local result = {}
+        skipWS()
+        if str:sub(pos, pos) == '}' then
+            pos = pos + 1
+            return result
+        end
+        while true do
+            skipWS()
+            local key = parseString()
+            skipWS()
+            pos = pos + 1
+            local value = parseValue()
+            if value ~= nil then
+                result[key] = value
+            end
+            skipWS()
+            if str:sub(pos, pos) == ',' then
+                pos = pos + 1
+            else
+                pos = pos + 1
+                break
+            end
+        end
+        return result
+    end
+
+    local function parseArray()
+        pos = pos + 1
+        local result = {}
+        local index = 1
+        skipWS()
+        if str:sub(pos, pos) == ']' then
+            pos = pos + 1
+            return result
+        end
+        while true do
+            local value = parseValue()
+            result[index] = value
+            index = index + 1
+            skipWS()
+            if str:sub(pos, pos) == ',' then
+                pos = pos + 1
+            else
+                pos = pos + 1
+                break
+            end
+        end
+        return result
+    end
+
+    parseValue = function()
+        skipWS()
+        local c = str:sub(pos, pos)
+        if c == '"' then
+            return parseString()
+        elseif c == '{' then
+            return parseObject()
+        elseif c == '[' then
+            return parseArray()
+        elseif str:sub(pos, pos + 3) == "null" then
+            pos = pos + 4
+            return nil
+        elseif str:sub(pos, pos + 3) == "true" then
+            pos = pos + 4
+            return true
+        elseif str:sub(pos, pos + 4) == "false" then
+            pos = pos + 5
+            return false
+        else
+            return parseNumber()
+        end
+    end
+
+    return parseValue()
+end
+
+-- 导出所有数据为 JSON
+function RLC:ExportAllData()
+    local data = {
+        version = 1,
+        distroMode = RaidLootCounterDB.distroMode or "MS+1",
+        autoAnnounce = RaidLootCounterDB.autoAnnounce or false,
+        stopRollCountdown = RaidLootCounterDB.stopRollCountdown or false,
+        players = {},
+        bosses = {}
+    }
+
+    for playerName, p in pairs(RaidLootCounterDB.players or {}) do
+        if p and type(p) == "table" then
+            data.players[playerName] = {
+                msCount = p.msCount or 0,
+                osCount = p.osCount or 0,
+                class = p.class or "WARRIOR"
+            }
+        end
+    end
+
+    for guid, b in pairs(RaidLootCounterDB.lootedBosses or {}) do
+        if b and type(b) == "table" and b.loot then
+            local bossData = {
+                name = b.name or "Unknown",
+                instance = b.instance or "Unknown",
+                timestamp = b.timestamp or 0,
+                loot = {}
+            }
+            for _, item in ipairs(b.loot) do
+                if type(item) == "table" then
+                    table.insert(bossData.loot, {
+                        link = item.link,
+                        holder = item.holder,
+                        type = item.type or "UNASSIGN"
+                    })
+                elseif item then
+                    table.insert(bossData.loot, {
+                        link = item,
+                        holder = nil,
+                        type = "UNASSIGN"
+                    })
+                end
+            end
+            data.bosses[guid] = bossData
+        end
+    end
+
+    local jsonText = jsonEncode(data)
 
     -- 打印到聊天框（双重备份，防止崩溃丢失）
     print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_EXPORT_HEADER"] or "--- RLC Data Export ---"))
-    for _, line in ipairs(lines) do
-        print(line)
-    end
+    print(jsonText)
     print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_EXPORT_FOOTER"] or "--- End of Export ---"))
 
     -- 显示备份窗口并填充导出文本
-    RLC:ShowBackupWindow(exportText)
+    RLC:ShowBackupWindow(jsonText)
+
+    -- 统计
+    local playerCount, bossCount, itemCount = 0, 0, 0
+    for _ in pairs(data.players) do playerCount = playerCount + 1 end
+    for _, b in pairs(data.bosses) do
+        bossCount = bossCount + 1
+        itemCount = itemCount + #b.loot
+    end
 
     print(ns.CONSTANTS.CHAT_PREFIX .. string.format(
         L["BACKUP_EXPORT_SUCCESS"] or "Exported %d players, %d bosses, %d items.",
         playerCount, bossCount, itemCount))
 end
 
--- 解析导出文本
+-- 解析 JSON 导出文本
 function RLC:ParseExportText(text)
     if not text or text == "" then
         return nil, "empty"
     end
 
-    -- 去除颜色代码
-    local cleaned = text:gsub("|[cCrR][%x]+", "")
+    local decoded = jsonDecode(text)
 
-    -- 提取BEGIN和END之间的内容
-    local startPos = cleaned:find(EXPORT.BEGIN_MARKER, 1, true)
-    local endPos = cleaned:find(EXPORT.END_MARKER, 1, true)
-
-    if not startPos or not endPos then
-        return nil, "no_markers"
+    if type(decoded) ~= "table" or not decoded.players or not decoded.bosses then
+        return nil, "invalid"
     end
 
-    local content = cleaned:sub(startPos + #EXPORT.BEGIN_MARKER, endPos - 1)
-    content = content:gsub("^%s+", "")
-
-    local result = {
-        players = {},
-        bosses = {},
-        settings = nil,
-        stats = { players = 0, bosses = 0, items = 0 }
-    }
-
-    for line in content:gmatch("[^\r\n]+") do
-        line = line:gsub("^%s+", ""):gsub("%s+$", "")
-        if line ~= "" then
-            -- 解析PLAYER行
-            if line:find("%[RLC:PLAYER%]") then
-                local name, class, ms, os = line:match("%[RLC:PLAYER%]%s+(.+)%|([^|]+)%|([^|]+)%|([^|]+)$")
-                if name and class and ms and os then
-                    result.players[name] = {
-                        msCount = tonumber(ms) or 0,
-                        osCount = tonumber(os) or 0,
-                        class = class
-                    }
-                    result.stats.players = result.stats.players + 1
-                end
-            -- 解析CONFIG行
-            elseif line:find("%[RLC:CONFIG%]") then
-                local distroMode, autoAnnounce, stopRollCountdown = line:match("%[RLC:CONFIG%]%s+([^|]+)%|([^|]+)%|([^|]+)$")
-                if distroMode and autoAnnounce and stopRollCountdown then
-                    result.settings = {
-                        distroMode = distroMode,
-                        autoAnnounce = (autoAnnounce == "true"),
-                        stopRollCountdown = (stopRollCountdown == "true")
-                    }
-                end
-            -- 解析BOSS行
-            elseif line:find("%[RLC:BOSS#") then
-                local bossNum, name, instance, timestamp = line:match("%[RLC:BOSS#(%d+)%]%s+(.+)%|([^|]+)%|([^|]+)$")
-                if bossNum and name and instance and timestamp then
-                    local num = tonumber(bossNum)
-                    result.bosses[num] = {
-                        name = name,
-                        instance = instance,
-                        timestamp = tonumber(timestamp) or 0,
-                        loot = {}
-                    }
-                    result.stats.bosses = result.stats.bosses + 1
-                end
-            -- 解析ITEM行
-            elseif line:find("%[RLC:ITEM#") then
-                local bossNum, itemLink, holder, itemType = line:match("%[RLC:ITEM#(%d+)%]%s+(.+)%|([^|]+)%|([^|]+)$")
-                if bossNum and itemLink and holder and itemType then
-                    local num = tonumber(bossNum)
-                    if result.bosses[num] then
-                        local holderValue = (holder == EXPORT.UNASSIGNED_HOLDER) and nil or holder
-                        table.insert(result.bosses[num].loot, {
-                            link = itemLink,
-                            holder = holderValue,
-                            type = itemType
-                        })
-                        result.stats.items = result.stats.items + 1
-                    end
-                end
-            end
-        end
-    end
-
-    return result, nil
+    return decoded, nil
 end
 
--- 从解析结果恢复数据到数据库
+-- 从 JSON 恢复数据
 function RLC:ImportFromText(text)
     if not text or text == "" then
         print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_IMPORT_EMPTY"] or "EditBox is empty."))
         return
     end
 
-    local result, err = RLC:ParseExportText(text)
+    local data, err = RLC:ParseExportText(text)
 
-    if not result then
+    if not data then
         print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_IMPORT_FAILED"] or "Failed to parse."))
         return
     end
 
-    -- 恢复玩家数据
-    for playerName, data in pairs(result.players) do
-        RaidLootCounterDB.players[playerName] = {
-            msCount = data.msCount or 0,
-            osCount = data.osCount or 0,
-            class = data.class or "WARRIOR"
-        }
-    end
-
-    -- 恢复Boss和物品数据
-    for bossNum, data in pairs(result.bosses) do
-        local guid = "Imported_" .. bossNum
-        RaidLootCounterDB.lootedBosses[guid] = {
-            name = data.name,
-            instance = data.instance,
-            timestamp = data.timestamp,
-            loot = data.loot
-        }
-    end
-
     -- 恢复配置
-    if result.settings then
-        if result.settings.distroMode then
-            RaidLootCounterDB.distroMode = result.settings.distroMode
-            RLC.distroMode = result.settings.distroMode
-            if RaidLootCounterFrameDistroModeButton then
-                RaidLootCounterFrameDistroModeButton:SetText(L["DISTRO_MODE"] .. ": " .. RLC.distroMode)
-            end
+    if data.distroMode then
+        RaidLootCounterDB.distroMode = data.distroMode
+        RLC.distroMode = data.distroMode
+        if RaidLootCounterFrameDistroModeButton then
+            RaidLootCounterFrameDistroModeButton:SetText(L["DISTRO_MODE"] .. ": " .. RLC.distroMode)
         end
-        if result.settings.autoAnnounce ~= nil then
-            RaidLootCounterDB.autoAnnounce = result.settings.autoAnnounce
-            if RaidLootCounterFrameAutoAnnounceCheckbox then
-                RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce)
-            end
+    end
+    if data.autoAnnounce ~= nil then
+        RaidLootCounterDB.autoAnnounce = data.autoAnnounce
+        if RaidLootCounterFrameAutoAnnounceCheckbox then
+            RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce)
         end
-        if result.settings.stopRollCountdown ~= nil then
-            RaidLootCounterDB.stopRollCountdown = result.settings.stopRollCountdown
-            if RaidLootCounterFrameStopRollCountdownCheckbox then
-                RaidLootCounterFrameStopRollCountdownCheckbox:SetChecked(RaidLootCounterDB.stopRollCountdown)
-            end
+    end
+    if data.stopRollCountdown ~= nil then
+        RaidLootCounterDB.stopRollCountdown = data.stopRollCountdown
+        if RaidLootCounterFrameStopRollCountdownCheckbox then
+            RaidLootCounterFrameStopRollCountdownCheckbox:SetChecked(RaidLootCounterDB.stopRollCountdown)
         end
+    end
+
+    -- 恢复玩家
+    for playerName, p in pairs(data.players) do
+        RaidLootCounterDB.players[playerName] = {
+            msCount = p.msCount or 0,
+            osCount = p.osCount or 0,
+            class = p.class or "WARRIOR"
+        }
+    end
+
+    -- 恢复Boss和物品
+    for guid, b in pairs(data.bosses) do
+        RaidLootCounterDB.lootedBosses[guid] = {
+            name = b.name,
+            instance = b.instance,
+            timestamp = b.timestamp or 0,
+            loot = b.loot or {}
+        }
     end
 
     -- 刷新显示
@@ -620,9 +718,17 @@ function RLC:ImportFromText(text)
         RLC:RefreshLootHistory()
     end
 
+    -- 统计
+    local playerCount, bossCount, itemCount = 0, 0, 0
+    for _ in pairs(data.players) do playerCount = playerCount + 1 end
+    for _, b in pairs(data.bosses) do
+        bossCount = bossCount + 1
+        itemCount = itemCount + #b.loot
+    end
+
     print(ns.CONSTANTS.CHAT_PREFIX .. string.format(
         L["BACKUP_IMPORT_SUCCESS"] or "Restored %d players, %d bosses, %d items.",
-        result.stats.players, result.stats.bosses, result.stats.items))
+        playerCount, bossCount, itemCount))
 end
 
 -- 创建备份窗口
@@ -668,22 +774,22 @@ local function CreateBackupFrame()
     editBox:SetText(L["BACKUP_EDITBOX_PLACEHOLDER"] or "Export text will appear here...")
     frame.editBox = editBox
 
-    -- 导出按钮
-    local exportBtn = CreateFrame("Button", "RLCBackupExportBtn", frame, "UIPanelButtonTemplate")
-    exportBtn:SetSize(160, 25)
-    exportBtn:SetPoint("BOTTOMLEFT", frame, "BOTTOM", 15, 15)
-    exportBtn:SetText(L["BACKUP_BTN_EXPORT"] or "Export & Select All")
-    exportBtn:SetScript("OnClick", function()
-        RLC:ExportAllData()
-    end)
-
-    -- 恢复按钮
+    -- 导入按钮
     local importBtn = CreateFrame("Button", "RLCBackupImportBtn", frame, "UIPanelButtonTemplate")
     importBtn:SetSize(160, 25)
     importBtn:SetPoint("BOTTOMRIGHT", frame, "BOTTOM", -15, 15)
-    importBtn:SetText(L["BACKUP_BTN_IMPORT"] or "Restore Data")
+    importBtn:SetText(L["BACKUP_BTN_IMPORT"] or "Import")
     importBtn:SetScript("OnClick", function()
         RLC:ImportFromText(editBox:GetText())
+    end)
+
+    -- 取消按钮
+    local cancelBtn = CreateFrame("Button", "RLCBackupCancelBtn", frame, "UIPanelButtonTemplate")
+    cancelBtn:SetSize(160, 25)
+    cancelBtn:SetPoint("LEFT", importBtn, "RIGHT", 10, 0)
+    cancelBtn:SetText(L["BACKUP_BTN_CANCEL"] or "Cancel")
+    cancelBtn:SetScript("OnClick", function()
+        frame:Hide()
     end)
 
     -- 关闭按钮
@@ -709,24 +815,74 @@ local function CreateBackupFrame()
     return frame
 end
 
--- 显示备份窗口
+-- 显示备份窗口（自动导出当前数据）
 function RLC:ShowBackupWindow(text)
     if not RLCBackupFrame then
         RLCBackupFrame = CreateBackupFrame()
     end
 
     -- 更新本地化文字
-    if RLCBackupExportBtn then
-        RLCBackupExportBtn:SetText(L["BACKUP_BTN_EXPORT"] or "Export & Select All")
-    end
     if RLCBackupImportBtn then
-        RLCBackupImportBtn:SetText(L["BACKUP_BTN_IMPORT"] or "Restore Data")
+        RLCBackupImportBtn:SetText(L["BACKUP_BTN_IMPORT"] or "Import")
+    end
+    if RLCBackupCancelBtn then
+        RLCBackupCancelBtn:SetText(L["BACKUP_BTN_CANCEL"] or "Cancel")
     end
     if RLCBackupFrame.title then
         RLCBackupFrame.title:SetText(L["BACKUP_WINDOW_TITLE"] or "Data Backup & Restore")
     end
 
-    -- 填充导出文本
+    -- 如果没有传入文本，自动导出当前数据
+    if not text and RLCBackupFrame.editBox then
+        local data = {
+            version = 1,
+            distroMode = RaidLootCounterDB.distroMode or "MS+1",
+            autoAnnounce = RaidLootCounterDB.autoAnnounce or false,
+            stopRollCountdown = RaidLootCounterDB.stopRollCountdown or false,
+            players = {},
+            bosses = {}
+        }
+
+        for playerName, p in pairs(RaidLootCounterDB.players or {}) do
+            if p and type(p) == "table" then
+                data.players[playerName] = {
+                    msCount = p.msCount or 0,
+                    osCount = p.osCount or 0,
+                    class = p.class or "WARRIOR"
+                }
+            end
+        end
+
+        for guid, b in pairs(RaidLootCounterDB.lootedBosses or {}) do
+            if b and type(b) == "table" and b.loot then
+                local bossData = {
+                    name = b.name or "Unknown",
+                    instance = b.instance or "Unknown",
+                    timestamp = b.timestamp or 0,
+                    loot = {}
+                }
+                for _, item in ipairs(b.loot) do
+                    if type(item) == "table" then
+                        table.insert(bossData.loot, {
+                            link = item.link,
+                            holder = item.holder,
+                            type = item.type or "UNASSIGN"
+                        })
+                    elseif item then
+                        table.insert(bossData.loot, {
+                            link = item,
+                            holder = nil,
+                            type = "UNASSIGN"
+                        })
+                    end
+                end
+                data.bosses[guid] = bossData
+            end
+        end
+
+        text = jsonEncode(data)
+    end
+
     if text and RLCBackupFrame.editBox then
         RLCBackupFrame.editBox:SetText(text)
         RLCBackupFrame.editBox:SetSelected(0, -1)
@@ -1364,6 +1520,7 @@ local function InitUI()
     if RaidLootCounterFrameTitle then RaidLootCounterFrameTitle:SetText(L["WINDOW_TITLE"]) end
     if RaidLootCounterFrameSyncButton then RaidLootCounterFrameSyncButton:SetText(L["SYNC_RAID"]) end
     if RaidLootCounterFrameClearButton then RaidLootCounterFrameClearButton:SetText(L["CLEAR_DATA"]) end
+    if RaidLootCounterFrameBackupButton then RaidLootCounterFrameBackupButton:SetText(L["BACKUP_BUTTON"]) end
     if RaidLootCounterFrameSendButton then RaidLootCounterFrameSendButton:SetText(L["SEND_STATS"]) end
     if RaidLootCounterFrameViewLootButton then RaidLootCounterFrameViewLootButton:SetText(L["VIEW_LOOT"]) end
     if RaidLootCounterFrameDistroModeButton then RaidLootCounterFrameDistroModeButton:SetText(L["DISTRO_MODE"] .. ": " .. RLC.distroMode) end

@@ -146,6 +146,20 @@
                 </Scripts>
             </Button>
 
+            <Button name="$parentBackupButton" inherits="GameMenuButtonTemplate" text="Backup">
+                <Size x="100" y="25"/>
+                <Anchors>
+                    <Anchor point="LEFT" relativeTo="$parentClearButton" relativePoint="RIGHT" x="10" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.ShowBackupWindow then
+                            RLC:ShowBackupWindow()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
             <Button name="$parentSendButton" inherits="GameMenuButtonTemplate" text="Send Stats">
                 <Size x="120" y="25"/>
                 <Anchors>
