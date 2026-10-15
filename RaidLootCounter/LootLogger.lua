@@ -123,9 +123,6 @@ local function OnLootOpened()
 
         RaidLootCounterDB.lootedBosses[guid] = lootData
         
-        -- 保存提醒：建议备份数据以防崩溃
-        print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SAVE_REMINDER_BOSS"] or "Consider /rlc export to backup.")
-
         -- 如果历史记录窗口打开，刷新它
         if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
             RLC:RefreshLootHistory()

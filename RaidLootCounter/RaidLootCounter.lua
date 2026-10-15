@@ -1408,7 +1408,6 @@ function RLC:PerformAssignment(isOS)
         end
         local suffix = isOS and " (OS)" or " (MS)"
         print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOOT_ASSIGNED"] .. data.link .. L["MSG_TO"] .. RLC.targetPlayer .. suffix)
-        print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SAVE_REMINDER_ASSIGN"] or "Consider /rlc export or /reload.")
         
         if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
             RLC:RefreshLootHistory()
@@ -1501,7 +1500,6 @@ function RLC:OnLootSelectionSaveClick()
                 RLC:SendLootUpdate(RLC.targetPlayer, newCount, false, data.link, isOS)
             end
             print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOOT_REMOVED"] .. data.link .. L["MSG_FROM"] .. RLC.targetPlayer)
-            print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SAVE_REMINDER_ASSIGN"] or "Consider /rlc export or /reload.")
         end
         
         if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
@@ -1641,15 +1639,8 @@ local function OnAddonLoaded(self, event, addonName)
             end
             print(ns.CONSTANTS.CHAT_PREFIX .. "Frames reset to center.")
             return
-        elseif msg == "export" then
-            RLC:ExportAllData()
-            return
         elseif msg == "import" then
             RLC:ShowBackupWindow()
-            return
-        elseif msg == "save" then
-            RLC:ExportAllData()
-            print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SAVE_REMINDER_ASSIGN"] or "Consider /reload to save.")
             return
         end
 
@@ -1681,7 +1672,6 @@ local function OnAddonLoaded(self, event, addonName)
     }
     
     print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOADED"])
-    print(ns.CONSTANTS.CHAT_PREFIX .. (L["MSG_SAVE_REMINDER_LOAD"] or "Tip: Use /rlc export to backup, /rlc import to restore."))
 end
 
 local eventFrame = CreateFrame("Frame")
