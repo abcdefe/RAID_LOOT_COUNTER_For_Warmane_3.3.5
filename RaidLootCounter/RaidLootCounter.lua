@@ -385,6 +385,318 @@ function RLC:SendToRaid()
     print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_STATS_SENT"])
 end
 
+-- ============================================================================
+-- 3.5 数据导出与恢复 (Data Export & Import)
+-- ============================================================================
+
+local EXPORT = ns.CONSTANTS.EXPORT
+
+-- 导出所有数据到文本
+function RLC:ExportAllData()
+    local players = RaidLootCounterDB.players or {}
+    local bosses = RaidLootCounterDB.lootedBosses or {}
+
+    local playerCount = 0
+    local bossCount = 0
+    local itemCount = 0
+
+    local lines = {}
+    table.insert(lines, EXPORT.BEGIN_MARKER)
+
+    -- 导出玩家数据
+    for playerName, data in pairs(players) do
+        if data and type(data) == "table" then
+            table.insert(lines, string.format("%s %s|%s|%d|%d",
+                EXPORT.PLAYER_PREFIX, playerName, data.class or "WARRIOR",
+                data.msCount or 0, data.osCount or 0))
+            playerCount = playerCount + 1
+        end
+    end
+
+    -- 导出Boss和物品数据
+    local bossIndex = 0
+    for _, data in pairs(bosses) do
+        if data and type(data) == "table" and data.loot then
+            bossIndex = bossIndex + 1
+            table.insert(lines, string.format("%s%d] %s|%s|%d",
+                EXPORT.BOSS_PREFIX, bossIndex, data.name or "Unknown",
+                data.instance or "Unknown", data.timestamp or 0))
+            bossCount = bossCount + 1
+
+            for _, itemData in ipairs(data.loot) do
+                local link, holder, itemType
+                if type(itemData) == "table" then
+                    link = itemData.link
+                    holder = itemData.holder
+                    itemType = itemData.type or "UNASSIGN"
+                else
+                    link = itemData
+                    holder = nil
+                    itemType = "UNASSIGN"
+                end
+
+                if link then
+                    local holderStr = holder or EXPORT.UNASSIGNED_HOLDER
+                    table.insert(lines, string.format("%s%d] %s|%s|%s",
+                        EXPORT.ITEM_PREFIX, bossIndex, link, holderStr, itemType))
+                    itemCount = itemCount + 1
+                end
+            end
+        end
+    end
+
+    table.insert(lines, EXPORT.END_MARKER)
+    local exportText = table.concat(lines, "\n")
+
+    -- 打印到聊天框（双重备份，防止崩溃丢失）
+    print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_EXPORT_HEADER"] or "--- RLC Data Export ---"))
+    for _, line in ipairs(lines) do
+        print(line)
+    end
+    print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_EXPORT_FOOTER"] or "--- End of Export ---"))
+
+    -- 显示备份窗口并填充导出文本
+    RLC:ShowBackupWindow(exportText)
+
+    print(ns.CONSTANTS.CHAT_PREFIX .. string.format(
+        L["BACKUP_EXPORT_SUCCESS"] or "Exported %d players, %d bosses, %d items.",
+        playerCount, bossCount, itemCount))
+end
+
+-- 解析导出文本
+function RLC:ParseExportText(text)
+    if not text or text == "" then
+        return nil, "empty"
+    end
+
+    -- 去除颜色代码
+    local cleaned = text:gsub("|[cCrR][%x]+", "")
+
+    -- 提取BEGIN和END之间的内容
+    local startPos = cleaned:find(EXPORT.BEGIN_MARKER, 1, true)
+    local endPos = cleaned:find(EXPORT.END_MARKER, 1, true)
+
+    if not startPos or not endPos then
+        return nil, "no_markers"
+    end
+
+    local content = cleaned:sub(startPos + #EXPORT.BEGIN_MARKER, endPos - 1)
+    content = content:gsub("^%s+", "")
+
+    local result = {
+        players = {},
+        bosses = {},
+        stats = { players = 0, bosses = 0, items = 0 }
+    }
+
+    for line in content:gmatch("[^\r\n]+") do
+        line = line:gsub("^%s+", ""):gsub("%s+$", "")
+        if line ~= "" then
+            -- 解析PLAYER行
+            if line:find("%[RLC:PLAYER%]") then
+                local name, class, ms, os = line:match("%[RLC:PLAYER%]%s+(.+)%|([^|]+)%|([^|]+)%|([^|]+)$")
+                if name and class and ms and os then
+                    result.players[name] = {
+                        msCount = tonumber(ms) or 0,
+                        osCount = tonumber(os) or 0,
+                        class = class
+                    }
+                    result.stats.players = result.stats.players + 1
+                end
+            -- 解析BOSS行
+            elseif line:find("%[RLC:BOSS#") then
+                local bossNum, name, instance, timestamp = line:match("%[RLC:BOSS#(%d+)%]%s+(.+)%|([^|]+)%|([^|]+)$")
+                if bossNum and name and instance and timestamp then
+                    local num = tonumber(bossNum)
+                    result.bosses[num] = {
+                        name = name,
+                        instance = instance,
+                        timestamp = tonumber(timestamp) or 0,
+                        loot = {}
+                    }
+                    result.stats.bosses = result.stats.bosses + 1
+                end
+            -- 解析ITEM行
+            elseif line:find("%[RLC:ITEM#") then
+                local bossNum, itemLink, holder, itemType = line:match("%[RLC:ITEM#(%d+)%]%s+(.+)%|([^|]+)%|([^|]+)$")
+                if bossNum and itemLink and holder and itemType then
+                    local num = tonumber(bossNum)
+                    if result.bosses[num] then
+                        local holderValue = (holder == EXPORT.UNASSIGNED_HOLDER) and nil or holder
+                        table.insert(result.bosses[num].loot, {
+                            link = itemLink,
+                            holder = holderValue,
+                            type = itemType
+                        })
+                        result.stats.items = result.stats.items + 1
+                    end
+                end
+            end
+        end
+    end
+
+    return result, nil
+end
+
+-- 从解析结果恢复数据到数据库
+function RLC:ImportFromText(text)
+    if not text or text == "" then
+        print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_IMPORT_EMPTY"] or "EditBox is empty."))
+        return
+    end
+
+    local result, err = RLC:ParseExportText(text)
+
+    if not result then
+        print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_IMPORT_FAILED"] or "Failed to parse."))
+        return
+    end
+
+    -- 恢复玩家数据
+    for playerName, data in pairs(result.players) do
+        RaidLootCounterDB.players[playerName] = {
+            msCount = data.msCount or 0,
+            osCount = data.osCount or 0,
+            class = data.class or "WARRIOR"
+        }
+    end
+
+    -- 恢复Boss和物品数据
+    for bossNum, data in pairs(result.bosses) do
+        local guid = "Imported_" .. bossNum
+        RaidLootCounterDB.lootedBosses[guid] = {
+            name = data.name,
+            instance = data.instance,
+            timestamp = data.timestamp,
+            loot = data.loot
+        }
+    end
+
+    -- 刷新显示
+    RLC:RefreshDisplay()
+
+    if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
+        RLC:RefreshLootHistory()
+    end
+
+    print(ns.CONSTANTS.CHAT_PREFIX .. string.format(
+        L["BACKUP_IMPORT_SUCCESS"] or "Restored %d players, %d bosses, %d items.",
+        result.stats.players, result.stats.bosses, result.stats.items))
+end
+
+-- 创建备份窗口
+local function CreateBackupFrame()
+    local frame = CreateFrame("Frame", "RLCBackupFrame", UIParent)
+    frame:SetSize(600, 400)
+    frame:SetPoint("CENTER")
+    frame:SetFrameStrata("DIALOG")
+    frame:EnableMouse(true)
+    frame:SetMovable(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    frame:SetClampedToScreen(true)
+
+    -- 背景
+    local bg = frame:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(frame)
+    bg:SetTexture("Interface\\DialogFrames\\UI-DialogBox-Background")
+    bg:SetTexCoord(0, 1, 0, 1)
+
+    -- 标题栏
+    local titleBar = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -30)
+    titleBar:SetHeight(30)
+    titleBar:SetTexture("Interface\\DialogFrames\\UI-DialogBox-Header")
+    titleBar:SetTexCoord(0, 1, 0, 0.5)
+
+    -- 标题
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOP", frame, "TOP", 0, -14)
+    title:SetText(L["BACKUP_WINDOW_TITLE"] or "Data Backup & Restore")
+    frame.title = title
+
+    -- EditBox
+    local editBox = CreateFrame("EditBox", "RLCBackupEditBox", frame)
+    editBox:SetFont("GameFontNormalSmall", 11)
+    editBox:SetSize(560, 280)
+    editBox:SetPoint("TOP", frame, "TOP", 0, -45)
+    editBox:SetAutoFocus(false)
+    editBox:SetMaxLetters(999999)
+    editBox:SetText(L["BACKUP_EDITBOX_PLACEHOLDER"] or "Export text will appear here...")
+    frame.editBox = editBox
+
+    -- 导出按钮
+    local exportBtn = CreateFrame("Button", "RLCBackupExportBtn", frame, "UIPanelButtonTemplate")
+    exportBtn:SetSize(160, 25)
+    exportBtn:SetPoint("BOTTOMLEFT", frame, "BOTTOM", 15, 15)
+    exportBtn:SetText(L["BACKUP_BTN_EXPORT"] or "Export & Select All")
+    exportBtn:SetScript("OnClick", function()
+        RLC:ExportAllData()
+    end)
+
+    -- 恢复按钮
+    local importBtn = CreateFrame("Button", "RLCBackupImportBtn", frame, "UIPanelButtonTemplate")
+    importBtn:SetSize(160, 25)
+    importBtn:SetPoint("BOTTOMRIGHT", frame, "BOTTOM", -15, 15)
+    importBtn:SetText(L["BACKUP_BTN_IMPORT"] or "Restore Data")
+    importBtn:SetScript("OnClick", function()
+        RLC:ImportFromText(editBox:GetText())
+    end)
+
+    -- 关闭按钮
+    local closeBtn = CreateFrame("Button", "RLCBackupCloseBtn", frame, "UIPanelCloseButton")
+    closeBtn:SetPoint("TOPRIGHT", frame, "TOP", 0, 0)
+    closeBtn:SetScript("OnClick", function()
+        frame:Hide()
+    end)
+
+    -- 提示文字
+    local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hint:SetPoint("BOTTOM", frame, "BOTTOM", 0, 45)
+    hint:SetText(L["BACKUP_EDITBOX_SELECT_ALL"] or "(Text selected - press Ctrl+C to copy)")
+    hint:SetTextColor(0.6, 0.6, 0.6)
+    hint:Hide()
+    frame.hint = hint
+
+    -- 显示时居中
+    frame:SetScript("OnShow", function()
+        frame:SetPoint("CENTER")
+    end)
+
+    return frame
+end
+
+-- 显示备份窗口
+function RLC:ShowBackupWindow(text)
+    if not RLCBackupFrame then
+        RLCBackupFrame = CreateBackupFrame()
+    end
+
+    -- 更新本地化文字
+    if RLCBackupExportBtn then
+        RLCBackupExportBtn:SetText(L["BACKUP_BTN_EXPORT"] or "Export & Select All")
+    end
+    if RLCBackupImportBtn then
+        RLCBackupImportBtn:SetText(L["BACKUP_BTN_IMPORT"] or "Restore Data")
+    end
+    if RLCBackupFrame.title then
+        RLCBackupFrame.title:SetText(L["BACKUP_WINDOW_TITLE"] or "Data Backup & Restore")
+    end
+
+    -- 填充导出文本
+    if text and RLCBackupFrame.editBox then
+        RLCBackupFrame.editBox:SetText(text)
+        RLCBackupFrame.editBox:SetSelected(0, -1)
+        if RLCBackupFrame.hint then RLCBackupFrame.hint:Show() end
+    else
+        if RLCBackupFrame.hint then RLCBackupFrame.hint:Hide() end
+    end
+
+    RLCBackupFrame:Show()
+end
+
 -- Roll 相关逻辑已移动到独立模块 RLC_Roll.lua
 
 -- ============================================================================
@@ -899,6 +1211,7 @@ function RLC:PerformAssignment(isOS)
         end
         local suffix = isOS and " (OS)" or " (MS)"
         print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOOT_ASSIGNED"] .. data.link .. L["MSG_TO"] .. RLC.targetPlayer .. suffix)
+        print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SAVE_REMINDER_ASSIGN"] or "Consider /rlc export or /reload.")
         
         if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
             RLC:RefreshLootHistory()
@@ -991,6 +1304,7 @@ function RLC:OnLootSelectionSaveClick()
                 RLC:SendLootUpdate(RLC.targetPlayer, newCount, false, data.link, isOS)
             end
             print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOOT_REMOVED"] .. data.link .. L["MSG_FROM"] .. RLC.targetPlayer)
+            print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SAVE_REMINDER_ASSIGN"] or "Consider /rlc export or /reload.")
         end
         
         if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
@@ -1129,6 +1443,16 @@ local function OnAddonLoaded(self, event, addonName)
             end
             print(ns.CONSTANTS.CHAT_PREFIX .. "Frames reset to center.")
             return
+        elseif msg == "export" then
+            RLC:ExportAllData()
+            return
+        elseif msg == "import" then
+            RLC:ShowBackupWindow()
+            return
+        elseif msg == "save" then
+            RLC:ExportAllData()
+            print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_SAVE_REMINDER_ASSIGN"] or "Consider /reload to save.")
+            return
         end
 
         if RaidLootCounterFrame:IsShown() then
@@ -1159,6 +1483,7 @@ local function OnAddonLoaded(self, event, addonName)
     }
     
     print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOADED"])
+    print(ns.CONSTANTS.CHAT_PREFIX .. (L["MSG_SAVE_REMINDER_LOAD"] or "Tip: Use /rlc export to backup, /rlc import to restore."))
 end
 
 local eventFrame = CreateFrame("Frame")

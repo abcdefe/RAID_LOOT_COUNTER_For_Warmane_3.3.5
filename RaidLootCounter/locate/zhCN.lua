@@ -93,6 +93,25 @@ local zhCN = {
     ["AUTO_ANNOUNCE_ON"] = "自动通报: |cff00ff00已开启|r",
     ["AUTO_ANNOUNCE_OFF"] = "自动通报: |cffff0000已关闭|r",
 
+    -- Export/Import (Backup & Restore)
+    ["BACKUP_WINDOW_TITLE"] = "数据备份与恢复",
+    ["BACKUP_EDITBOX_PLACEHOLDER"] = "导出文本将显示在这里...",
+    ["BACKUP_EDITBOX_SELECT_ALL"] = "（文本已全选 - 按 Ctrl+C 复制）",
+    ["BACKUP_BTN_EXPORT"] = "导出并全选",
+    ["BACKUP_BTN_IMPORT"] = "恢复数据",
+    ["BACKUP_BTN_CLOSE"] = "关闭",
+    ["BACKUP_EXPORT_SUCCESS"] = "已导出 %d 名玩家, %d 个 Boss, %d 件物品到聊天框和文本框。",
+    ["BACKUP_IMPORT_SUCCESS"] = "已恢复 %d 名玩家, %d 个 Boss, %d 件物品。",
+    ["BACKUP_IMPORT_EMPTY"] = "文本框为空。请先粘贴导出文本。",
+    ["BACKUP_IMPORT_FAILED"] = "解析导出文本失败。请检查格式。",
+    ["BACKUP_IMPORT_PARTIAL"] = "部分恢复成功：%d 名玩家, %d 个 Boss, %d 件物品。",
+    ["BACKUP_NO_DATA_TO_EXPORT"] = "没有可导出的数据。请先同步团队并拾取掉落。",
+    ["MSG_SAVE_REMINDER_BOSS"] = "Boss掉落已记录。建议输入 /rlc export 备份以防崩溃。",
+    ["MSG_SAVE_REMINDER_ASSIGN"] = "数据已更新。建议输入 /rlc export 或 /reload 防止数据丢失。",
+    ["MSG_SAVE_REMINDER_LOAD"] = "提示：使用 /rlc export 导出数据，/rlc import 恢复数据。",
+    ["BACKUP_EXPORT_HEADER"] = "--- RLC 数据导出 ---",
+    ["BACKUP_EXPORT_FOOTER"] = "--- 导出结束 ---",
+
     -- Instance Abbreviations
     ["INSTANCE_ABBREVIATIONS"] = {
         ["冰冠堡垒"] = "ICC",

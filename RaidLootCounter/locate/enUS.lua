@@ -93,6 +93,25 @@ local enUS = {
     ["AUTO_ANNOUNCE_ON"] = "Auto announce: |cff00ff00Enabled|r",
     ["AUTO_ANNOUNCE_OFF"] = "Auto announce: |cffff0000Disabled|r",
 
+    -- Export/Import (Backup & Restore)
+    ["BACKUP_WINDOW_TITLE"] = "Data Backup & Restore",
+    ["BACKUP_EDITBOX_PLACEHOLDER"] = "Export text will appear here...",
+    ["BACKUP_EDITBOX_SELECT_ALL"] = "(Text selected - press Ctrl+C to copy)",
+    ["BACKUP_BTN_EXPORT"] = "Export & Select All",
+    ["BACKUP_BTN_IMPORT"] = "Restore Data",
+    ["BACKUP_BTN_CLOSE"] = "Close",
+    ["BACKUP_EXPORT_SUCCESS"] = "Exported %d players, %d bosses, %d items to chat and clipboard-ready field.",
+    ["BACKUP_IMPORT_SUCCESS"] = "Restored %d players, %d bosses, %d items.",
+    ["BACKUP_IMPORT_EMPTY"] = "EditBox is empty. Please paste export text first.",
+    ["BACKUP_IMPORT_FAILED"] = "Failed to parse export text. Please check format.",
+    ["BACKUP_IMPORT_PARTIAL"] = "Restored partially: %d players, %d bosses, %d items.",
+    ["BACKUP_NO_DATA_TO_EXPORT"] = "No data to export. Sync raid and collect loot first.",
+    ["MSG_SAVE_REMINDER_BOSS"] = "Boss loot recorded. Consider /rlc export to backup before crash.",
+    ["MSG_SAVE_REMINDER_ASSIGN"] = "Data updated. Consider /rlc export or /reload to prevent data loss.",
+    ["MSG_SAVE_REMINDER_LOAD"] = "Tip: Use /rlc export to backup data, /rlc import to restore.",
+    ["BACKUP_EXPORT_HEADER"] = "--- RLC Data Export ---",
+    ["BACKUP_EXPORT_FOOTER"] = "--- End of Export ---",
+
     -- Instance Abbreviations
     ["INSTANCE_ABBREVIATIONS"] = {
         ["Icecrown Citadel"] = "ICC",
