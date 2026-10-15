@@ -1639,9 +1639,6 @@ local function OnAddonLoaded(self, event, addonName)
             end
             print(ns.CONSTANTS.CHAT_PREFIX .. "Frames reset to center.")
             return
-        elseif msg == "import" then
-            RLC:ShowBackupWindow()
-            return
         end
 
         if RaidLootCounterFrame:IsShown() then
