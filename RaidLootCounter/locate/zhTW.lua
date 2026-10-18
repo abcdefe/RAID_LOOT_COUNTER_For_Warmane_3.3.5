@@ -83,7 +83,7 @@ local zhTW = {
     ["BUTTON_SAVE"] = "儲存",
     ["TITLE_MANUAL_ADD"] = "手動添加裝備",
     ["BOSS_MANUAL_ADD"] = "手動添加",
-    ["MSG_MANUAL_ADD_SUCCESS"] = "已添加 %s 到歷史記錄。",
+    ["MSG_MANUAL_ADD_SUCCESS"] = "已添加 %d 件裝備到歷史記錄。",
     ["MSG_NO_ITEM_SELECTED"] = "請先選擇一件裝備。",
 
     -- Errors / Info

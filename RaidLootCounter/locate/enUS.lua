@@ -82,7 +82,7 @@ local enUS = {
     ["BUTTON_SAVE"] = "Save",
     ["TITLE_MANUAL_ADD"] = "Manual Add Loot",
     ["BOSS_MANUAL_ADD"] = "Manual Add",
-    ["MSG_MANUAL_ADD_SUCCESS"] = "Added %s to history.",
+    ["MSG_MANUAL_ADD_SUCCESS"] = "Added %d items to history.",
     ["MSG_NO_ITEM_SELECTED"] = "Please select an item first.",
 
     -- Errors / Info

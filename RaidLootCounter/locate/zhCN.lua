@@ -82,7 +82,7 @@ local zhCN = {
     ["BUTTON_SAVE"] = "保存",
     ["TITLE_MANUAL_ADD"] = "手动添加装备",
     ["BOSS_MANUAL_ADD"] = "手动添加",
-    ["MSG_MANUAL_ADD_SUCCESS"] = "已添加 %s 到历史记录。",
+    ["MSG_MANUAL_ADD_SUCCESS"] = "已添加 %d 件装备到历史记录。",
     ["MSG_NO_ITEM_SELECTED"] = "请先选择一件装备。",
 
     -- Errors / Info

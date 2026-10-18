@@ -146,6 +146,7 @@
                 </Scripts>
             </Button>
 
+            <!-- 导入/导出功能暂不开放，按钮注释掉（enabled="false" 在该模板上无置灰外观）
             <Button name="$parentBackupButton" inherits="GameMenuButtonTemplate" text="Backup" enabled="false">
                 <Size x="100" y="25"/>
                 <Anchors>
@@ -159,6 +160,7 @@
                     </OnClick>
                 </Scripts>
             </Button>
+            -->
 
             <Button name="$parentSendButton" inherits="GameMenuButtonTemplate" text="Send Stats">
                 <Size x="120" y="25"/>
