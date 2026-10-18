@@ -622,12 +622,13 @@ function RLC:ExportAllData()
     local jsonText = jsonEncode(data)
 
     -- 打印到聊天框（双重备份，防止崩溃丢失）
+    local exportText = ns.Compress.Encode(jsonText)
     print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_EXPORT_HEADER"] or "--- RLC Data Export ---"))
-    print(jsonText)
+    print(exportText)
     print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_EXPORT_FOOTER"] or "--- End of Export ---"))
 
     -- 显示备份窗口并填充导出文本
-    RLC:ShowBackupWindow(jsonText)
+    RLC:ShowBackupWindow(exportText)
 
     -- 统计
     local playerCount, bossCount, itemCount = 0, 0, 0
@@ -642,13 +643,26 @@ function RLC:ExportAllData()
         playerCount, bossCount, itemCount))
 end
 
--- 解析 JSON 导出文本
+-- 解析导出文本（自动识别：旧版纯 JSON / 新版 WA 式压缩串）
 function RLC:ParseExportText(text)
     if not text or text == "" then
         return nil, "empty"
     end
 
-    local decoded = jsonDecode(text)
+    -- 去掉首尾空白后自动识别格式
+    text = (text:gsub("^%s+", ""):gsub("%s+$", ""))
+
+    local decoded
+    if text:sub(1, 1) == "{" then
+        -- 旧格式：纯 JSON 文本
+        decoded = jsonDecode(text)
+    else
+        -- 新格式：WA 式 LZW 压缩 + B64 编码
+        local plain = ns.Compress.Decode(text)
+        if plain then
+            decoded = jsonDecode(plain)
+        end
+    end
 
     if type(decoded) ~= "table" or not decoded.players or not decoded.bosses then
         return nil, "invalid"
@@ -744,35 +758,90 @@ local function CreateBackupFrame()
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
     frame:SetClampedToScreen(true)
 
-    -- 背景
-    local bg = frame:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(frame)
-    bg:SetTexture("Interface\\DialogFrames\\UI-DialogBox-Background")
-    bg:SetTexCoord(0, 1, 0, 1)
+    -- 背景（使用 SetBackdrop 保证兼容性）
+    frame:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true,
+        tileSize = 32,
+        edgeSize = 16,
+        insets = { left = 12, right = 12, top = 25, bottom = 12 }
+    })
+    frame:SetBackdropColor(0, 0, 0, 1)
+    frame:SetBackdropBorderColor(0.5, 0.5, 0.5)
+
+    -- 不透明底色（BACKGROUND 层铺纯色，位于 backdrop 之下，保证弹窗完全不透）
+    local solidBg = frame:CreateTexture(nil, "BACKGROUND")
+    solidBg:SetAllPoints(frame)
+    solidBg:SetTexture("Interface\\Buttons\\WHITE8X8")
+    solidBg:SetVertexColor(0, 0, 0, 1)
 
     -- 标题栏
-    local titleBar = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    local titleBar = frame:CreateTexture(nil, "ARTWORK", nil, 1)
     titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-    titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -30)
-    titleBar:SetHeight(30)
-    titleBar:SetTexture("Interface\\DialogFrames\\UI-DialogBox-Header")
+    titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -25)
+    titleBar:SetHeight(25)
+    titleBar:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
     titleBar:SetTexCoord(0, 1, 0, 0.5)
 
     -- 标题
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOP", frame, "TOP", 0, -14)
+    title:SetPoint("TOP", frame, "TOP", 0, -12)
     title:SetText(L["BACKUP_WINDOW_TITLE"] or "Data Backup & Restore")
     frame.title = title
 
-    -- EditBox
-    local editBox = CreateFrame("EditBox", "RLCBackupEditBox", frame)
-    editBox:SetFont("GameFontNormalSmall", 11)
-    editBox:SetSize(560, 280)
-    editBox:SetPoint("TOP", frame, "TOP", 0, -45)
+    -- ============================================================
+    -- 可见框（带 backdrop，保持原样不动）
+    -- ============================================================
+    local textBox = CreateFrame("Frame", "RLCBackupTextBox", frame)
+    textBox:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -34)
+    textBox:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 68)
+    textBox:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    textBox:SetBackdropColor(0, 0, 0, 0.85)
+    textBox:SetBackdropBorderColor(0.55, 0.55, 0.55, 1)
+
+    -- ============================================================
+    -- 可见框与编辑框分离：backdrop 边框在 textBox，EditBox 内缩为其子框。
+    -- （此客户端实测：EditBox 作为 ScrollFrame 滚动子对象时文本不渲染，
+    --   因此不用 ScrollFrame，改为多行框 + 滚轮/光标滚动。）
+    -- ============================================================
+    local editBox = CreateFrame("EditBox", "RLCBackupEditBox", textBox)
+    editBox:SetPoint("TOPLEFT", textBox, "TOPLEFT", 8, -8)
+    editBox:SetPoint("BOTTOMRIGHT", textBox, "BOTTOMRIGHT", -8, 8)
+    editBox:SetMultiLine(true)
+    -- 必须传 Font 对象：SetFont 传名字字符串在 3.3.5 会被当作文件路径而静默失败，导致文本不渲染
+    editBox:SetFontObject(GameFontNormalSmall)
+    editBox:SetTextColor(1, 1, 1)
+    editBox:SetTextInsets(4, 4, 4, 4)
     editBox:SetAutoFocus(false)
-    editBox:SetMaxLetters(999999)
+    editBox:SetMaxLetters(100000)
     editBox:SetText(L["BACKUP_EDITBOX_PLACEHOLDER"] or "Export text will appear here...")
+    -- Esc 关闭窗口（3.3.5 自定义 DIALOG frame 不会自动响应 Esc）
+    editBox:SetScript("OnEscapePressed", function()
+        frame:Hide()
+    end)
+
+    -- 多行 EditBox 默认不响应滚轮；通过滚轮移动光标实现滚动（3.3.5 光标跟随自动滚动）。
+    -- 每格滚约 3 行（按当前编辑框宽度估算每行字符数）。
+    editBox:SetScript("OnMouseWheel", function(self, delta)
+        local lineHeight = select(2, self:GetFont()) or 12
+        local _, y = self:GetCursorPosition()                     -- y 为光标在文本中的像素位置（自上而下）
+        local curLine = math.max(0, math.floor(y / lineHeight))   -- 当前行（0 起）
+        local left, right = self:GetTextInsets()
+        local usableWidth = math.max(1, self:GetWidth() - left - right)
+        local charsPerLine = math.max(1, math.floor(usableWidth / 6.0))
+        local targetLine = math.max(0, curLine - delta * 3)
+        local targetPos = math.min(self:GetNumLetters(), math.floor(targetLine * charsPerLine))
+        self:SetCursorPosition(targetPos)                         -- 移动光标 → 视图跟随滚动
+    end)
+
     frame.editBox = editBox
+    frame.textBox = textBox
 
     -- 导入按钮
     local importBtn = CreateFrame("Button", "RLCBackupImportBtn", frame, "UIPanelButtonTemplate")
@@ -792,17 +861,10 @@ local function CreateBackupFrame()
         frame:Hide()
     end)
 
-    -- 关闭按钮
-    local closeBtn = CreateFrame("Button", "RLCBackupCloseBtn", frame, "UIPanelCloseButton")
-    closeBtn:SetPoint("TOPRIGHT", frame, "TOP", 0, 0)
-    closeBtn:SetScript("OnClick", function()
-        frame:Hide()
-    end)
-
     -- 提示文字
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     hint:SetPoint("BOTTOM", frame, "BOTTOM", 0, 45)
-    hint:SetText(L["BACKUP_EDITBOX_SELECT_ALL"] or "(Text selected - press Ctrl+C to copy)")
+    hint:SetText(L["BACKUP_EDITBOX_SELECT_ALL"] or "(Ctrl+A to select all, Ctrl+C to copy)")
     hint:SetTextColor(0.6, 0.6, 0.6)
     hint:Hide()
     frame.hint = hint
@@ -810,6 +872,14 @@ local function CreateBackupFrame()
     -- 显示时居中
     frame:SetScript("OnShow", function()
         frame:SetPoint("CENTER")
+    end)
+
+    -- 隐藏时清除焦点与选区，避免再次打开时 EditBox 状态异常
+    frame:SetScript("OnHide", function()
+        if editBox then
+            editBox:ClearFocus()
+            editBox:HighlightText(0, 0)
+        end
     end)
 
     return frame
@@ -880,18 +950,24 @@ function RLC:ShowBackupWindow(text)
             end
         end
 
-        text = jsonEncode(data)
+        text = ns.Compress.Encode(jsonEncode(data))
     end
 
-    if text and RLCBackupFrame.editBox then
+    local hasText = (text and RLCBackupFrame.editBox)
+    if hasText then
         RLCBackupFrame.editBox:SetText(text)
-        RLCBackupFrame.editBox:SetSelected(0, -1)
         if RLCBackupFrame.hint then RLCBackupFrame.hint:Show() end
     else
         if RLCBackupFrame.hint then RLCBackupFrame.hint:Hide() end
     end
 
     RLCBackupFrame:Show()
+
+    -- 3.3.5 无 EditBox:SetSelected（Cataclysm 才加入）；多行框全选会把末行高亮铺满整行宽造成"溢出"。
+    -- 标准做法（同 AceGUI MultiLineEditBox）：打开时不自动全选，仅置焦点，用户 Ctrl+A 自行全选。
+    if hasText and RLCBackupFrame.editBox then
+        RLCBackupFrame.editBox:SetFocus()
+    end
 end
 
 -- Roll 相关逻辑已移动到独立模块 RLC_Roll.lua
@@ -1382,8 +1458,11 @@ end
 
 function RLC:OnLootSelectionRowEnter(row, anchor)
     if not row or not row.data or not row.data.link then return end
-    GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
-    GameTooltip:SetHyperlink(row.data.link)
+    -- pcall 保护：RatingBuster/StatLogic 等 tooltip 钩子在此客户端可能报错，不影响本体 tooltip 显示
+    pcall(function()
+        GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
+        GameTooltip:SetHyperlink(row.data.link)
+    end)
     GameTooltip:Show()
 end
 

@@ -97,7 +97,7 @@ local zhCN = {
     -- Export/Import (Backup & Restore)
     ["BACKUP_WINDOW_TITLE"] = "数据备份与恢复",
     ["BACKUP_EDITBOX_PLACEHOLDER"] = "导出文本将显示在这里...",
-    ["BACKUP_EDITBOX_SELECT_ALL"] = "（文本已全选 - 按 Ctrl+C 复制）",
+    ["BACKUP_EDITBOX_SELECT_ALL"] = "（Ctrl+A 全选，Ctrl+C 复制）",
     ["BACKUP_BTN_EXPORT"] = "导出并全选",
     ["BACKUP_BTN_IMPORT"] = "导入",
     ["BACKUP_BTN_CANCEL"] = "取消",

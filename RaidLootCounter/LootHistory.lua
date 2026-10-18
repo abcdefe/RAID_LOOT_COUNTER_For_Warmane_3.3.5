@@ -235,8 +235,12 @@ end
 
 function RLC:OnHistoryRowEnter(row, anchor)
     if row.data and row.data.link then
-        GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
-        GameTooltip:SetHyperlink(row.data.link)
+        -- pcall 保护：RatingBuster/StatLogic 等 tooltip 钩子在此客户端可能报错
+        -- （其内部 StatLogicTooltip 有行未设字体），不影响本体 tooltip 显示
+        pcall(function()
+            GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
+            GameTooltip:SetHyperlink(row.data.link)
+        end)
         GameTooltip:Show()
     end
 end
@@ -350,6 +354,15 @@ local function GetManualAddRow(parent, index)
         row:SetScript("OnClick", function(self)
              RLC:OnManualAddRowClick(self)
         end)
+
+        -- 模板里 itemHitBox 的 OnClick 默认指向拾取分配的选择处理（OnLootSelectionRowClick），
+        -- 手动添加复用了该模板；itemHitBox 覆盖在物品名区域，若不改指，
+        -- 点击物品名会走错处理器 → selectedManualItem 不注册、保存报"请选择一件装备"。
+        if row.itemHitBox then
+            row.itemHitBox:SetScript("OnClick", function(self)
+                RLC:OnManualAddRowClick(self:GetParent())
+            end)
+        end
 
         -- Init highlight
         row.highlight = _G[rowName.."Highlight"]

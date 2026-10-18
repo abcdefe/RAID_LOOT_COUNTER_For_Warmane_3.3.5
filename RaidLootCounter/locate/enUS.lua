@@ -97,7 +97,7 @@ local enUS = {
     -- Export/Import (Backup & Restore)
     ["BACKUP_WINDOW_TITLE"] = "Data Backup & Restore",
     ["BACKUP_EDITBOX_PLACEHOLDER"] = "Export text will appear here...",
-    ["BACKUP_EDITBOX_SELECT_ALL"] = "(Text selected - press Ctrl+C to copy)",
+    ["BACKUP_EDITBOX_SELECT_ALL"] = "(Ctrl+A to select all, Ctrl+C to copy)",
     ["BACKUP_BTN_EXPORT"] = "Export & Select All",
     ["BACKUP_BTN_IMPORT"] = "Import",
     ["BACKUP_BTN_CANCEL"] = "Cancel",

@@ -14,6 +14,7 @@ Constants.lua
 RLC_DB.lua
 RLC_Roll.lua
 RaidLootCounter.xml
+RLC_Compress.lua
 RaidLootCounter.lua
 LootHistory.lua
 LootLogger.lua

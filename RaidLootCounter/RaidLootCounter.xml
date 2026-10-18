@@ -146,7 +146,7 @@
                 </Scripts>
             </Button>
 
-            <Button name="$parentBackupButton" inherits="GameMenuButtonTemplate" text="Backup">
+            <Button name="$parentBackupButton" inherits="GameMenuButtonTemplate" text="Backup" enabled="false">
                 <Size x="100" y="25"/>
                 <Anchors>
                     <Anchor point="LEFT" relativeTo="$parentClearButton" relativePoint="RIGHT" x="10" y="0"/>

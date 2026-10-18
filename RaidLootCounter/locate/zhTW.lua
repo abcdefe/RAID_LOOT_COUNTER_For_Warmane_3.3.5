@@ -98,7 +98,7 @@ local zhTW = {
     -- Export/Import (Backup & Restore)
     ["BACKUP_WINDOW_TITLE"] = "資料備份與恢復",
     ["BACKUP_EDITBOX_PLACEHOLDER"] = "匯出文字將顯示在這裡...",
-    ["BACKUP_EDITBOX_SELECT_ALL"] = "（文字已全選 - 按 Ctrl+C 複製）",
+    ["BACKUP_EDITBOX_SELECT_ALL"] = "（Ctrl+A 全選，Ctrl+C 複製）",
     ["BACKUP_BTN_EXPORT"] = "匯出並全選",
     ["BACKUP_BTN_IMPORT"] = "匯入",
     ["BACKUP_BTN_CANCEL"] = "取消",
