@@ -385,6 +385,591 @@ function RLC:SendToRaid()
     print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_STATS_SENT"])
 end
 
+-- ============================================================================
+-- 3.5 数据导出与恢复 (Data Export & Import)
+-- ============================================================================
+
+local EXPORT = ns.CONSTANTS.EXPORT
+
+-- ============================================================================
+-- JSON 编码器 & 解码器
+-- ============================================================================
+
+local function jsonEncode(value)
+    if value == nil then
+        return "null"
+    elseif type(value) == "boolean" then
+        return value and "true" or "false"
+    elseif type(value) == "number" then
+        return tostring(value)
+    elseif type(value) == "string" then
+        local escaped = value
+            :gsub("\\", "\\\\")
+            :gsub('"', '\\"')
+            :gsub("\n", "\\n")
+            :gsub("\r", "\\r")
+            :gsub("\t", "\\t")
+        return '"' .. escaped .. '"'
+    elseif type(value) == "table" then
+        local is_array = true
+        local max_index = 0
+        for k, _ in pairs(value) do
+            if type(k) ~= "number" or k < 1 then
+                is_array = false
+                break
+            end
+            if k > max_index then max_index = k end
+        end
+        if is_array and max_index > 0 then
+            local parts = {}
+            for i = 1, max_index do
+                table.insert(parts, jsonEncode(value[i]))
+            end
+            return "[" .. table.concat(parts, ",") .. "]"
+        else
+            local parts = {}
+            for k, v in pairs(value) do
+                table.insert(parts, jsonEncode(tostring(k)) .. ":" .. jsonEncode(v))
+            end
+            return "{" .. table.concat(parts, ",") .. "}"
+        end
+    end
+    return "null"
+end
+
+local function jsonDecode(str)
+    local pos = 1
+
+    local parseValue  -- 前向声明，解决相互递归
+
+    local function skipWS()
+        while pos <= #str do
+            local c = str:sub(pos, pos)
+            if c == ' ' or c == '\t' or c == '\n' or c == '\r' then
+                pos = pos + 1
+            else
+                break
+            end
+        end
+    end
+
+    local function parseString()
+        pos = pos + 1
+        local result = ""
+        while pos <= #str do
+            local c = str:sub(pos, pos)
+            if c == '"' then
+                pos = pos + 1
+                return result
+            elseif c == '\\' then
+                pos = pos + 1
+                local esc = str:sub(pos, pos)
+                if esc == 'n' then result = result .. '\n'
+                elseif esc == 'r' then result = result .. '\r'
+                elseif esc == 't' then result = result .. '\t'
+                elseif esc == '"' then result = result .. '"'
+                elseif esc == '\\' then result = result .. '\\'
+                elseif esc == '/' then result = result .. '/'
+                else result = result .. esc end
+                pos = pos + 1
+            else
+                result = result .. c
+                pos = pos + 1
+            end
+        end
+        return result
+    end
+
+    local function parseNumber()
+        local start = pos
+        while pos <= #str do
+            local c = str:sub(pos, pos)
+            if (c >= '0' and c <= '9') or c == '-' or c == '.' or c == 'e' or c == 'E' or c == '+' then
+                pos = pos + 1
+            else
+                break
+            end
+        end
+        return tonumber(str:sub(start, pos - 1))
+    end
+
+    local function parseObject()
+        pos = pos + 1
+        local result = {}
+        skipWS()
+        if str:sub(pos, pos) == '}' then
+            pos = pos + 1
+            return result
+        end
+        while true do
+            skipWS()
+            local key = parseString()
+            skipWS()
+            pos = pos + 1
+            local value = parseValue()
+            if value ~= nil then
+                result[key] = value
+            end
+            skipWS()
+            if str:sub(pos, pos) == ',' then
+                pos = pos + 1
+            else
+                pos = pos + 1
+                break
+            end
+        end
+        return result
+    end
+
+    local function parseArray()
+        pos = pos + 1
+        local result = {}
+        local index = 1
+        skipWS()
+        if str:sub(pos, pos) == ']' then
+            pos = pos + 1
+            return result
+        end
+        while true do
+            local value = parseValue()
+            result[index] = value
+            index = index + 1
+            skipWS()
+            if str:sub(pos, pos) == ',' then
+                pos = pos + 1
+            else
+                pos = pos + 1
+                break
+            end
+        end
+        return result
+    end
+
+    parseValue = function()
+        skipWS()
+        local c = str:sub(pos, pos)
+        if c == '"' then
+            return parseString()
+        elseif c == '{' then
+            return parseObject()
+        elseif c == '[' then
+            return parseArray()
+        elseif str:sub(pos, pos + 3) == "null" then
+            pos = pos + 4
+            return nil
+        elseif str:sub(pos, pos + 3) == "true" then
+            pos = pos + 4
+            return true
+        elseif str:sub(pos, pos + 4) == "false" then
+            pos = pos + 5
+            return false
+        else
+            return parseNumber()
+        end
+    end
+
+    return parseValue()
+end
+
+-- 导出所有数据为 JSON
+function RLC:ExportAllData()
+    local data = {
+        version = 1,
+        distroMode = RaidLootCounterDB.distroMode or "MS+1",
+        autoAnnounce = RaidLootCounterDB.autoAnnounce or false,
+        stopRollCountdown = RaidLootCounterDB.stopRollCountdown or false,
+        players = {},
+        bosses = {}
+    }
+
+    for playerName, p in pairs(RaidLootCounterDB.players or {}) do
+        if p and type(p) == "table" then
+            data.players[playerName] = {
+                msCount = p.msCount or 0,
+                osCount = p.osCount or 0,
+                class = p.class or "WARRIOR"
+            }
+        end
+    end
+
+    for guid, b in pairs(RaidLootCounterDB.lootedBosses or {}) do
+        if b and type(b) == "table" and b.loot then
+            local bossData = {
+                name = b.name or "Unknown",
+                instance = b.instance or "Unknown",
+                timestamp = b.timestamp or 0,
+                loot = {}
+            }
+            for _, item in ipairs(b.loot) do
+                if type(item) == "table" then
+                    table.insert(bossData.loot, {
+                        link = item.link,
+                        holder = item.holder,
+                        type = item.type or "UNASSIGN"
+                    })
+                elseif item then
+                    table.insert(bossData.loot, {
+                        link = item,
+                        holder = nil,
+                        type = "UNASSIGN"
+                    })
+                end
+            end
+            data.bosses[guid] = bossData
+        end
+    end
+
+    local jsonText = jsonEncode(data)
+
+    -- 打印到聊天框（双重备份，防止崩溃丢失）
+    local exportText = ns.Compress.Encode(jsonText)
+    print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_EXPORT_HEADER"] or "--- RLC Data Export ---"))
+    print(exportText)
+    print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_EXPORT_FOOTER"] or "--- End of Export ---"))
+
+    -- 显示备份窗口并填充导出文本
+    RLC:ShowBackupWindow(exportText)
+
+    -- 统计
+    local playerCount, bossCount, itemCount = 0, 0, 0
+    for _ in pairs(data.players) do playerCount = playerCount + 1 end
+    for _, b in pairs(data.bosses) do
+        bossCount = bossCount + 1
+        itemCount = itemCount + #b.loot
+    end
+
+    print(ns.CONSTANTS.CHAT_PREFIX .. string.format(
+        L["BACKUP_EXPORT_SUCCESS"] or "Exported %d players, %d bosses, %d items.",
+        playerCount, bossCount, itemCount))
+end
+
+-- 解析导出文本（自动识别：旧版纯 JSON / 新版 WA 式压缩串）
+function RLC:ParseExportText(text)
+    if not text or text == "" then
+        return nil, "empty"
+    end
+
+    -- 去掉首尾空白后自动识别格式
+    text = (text:gsub("^%s+", ""):gsub("%s+$", ""))
+
+    local decoded
+    if text:sub(1, 1) == "{" then
+        -- 旧格式：纯 JSON 文本
+        decoded = jsonDecode(text)
+    else
+        -- 新格式：WA 式 LZW 压缩 + B64 编码
+        local plain = ns.Compress.Decode(text)
+        if plain then
+            decoded = jsonDecode(plain)
+        end
+    end
+
+    if type(decoded) ~= "table" or not decoded.players or not decoded.bosses then
+        return nil, "invalid"
+    end
+
+    return decoded, nil
+end
+
+-- 从 JSON 恢复数据
+function RLC:ImportFromText(text)
+    if not text or text == "" then
+        print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_IMPORT_EMPTY"] or "EditBox is empty."))
+        return
+    end
+
+    local data, err = RLC:ParseExportText(text)
+
+    if not data then
+        print(ns.CONSTANTS.CHAT_PREFIX .. (L["BACKUP_IMPORT_FAILED"] or "Failed to parse."))
+        return
+    end
+
+    -- 恢复配置
+    if data.distroMode then
+        RaidLootCounterDB.distroMode = data.distroMode
+        RLC.distroMode = data.distroMode
+        if RaidLootCounterFrameDistroModeButton then
+            RaidLootCounterFrameDistroModeButton:SetText(L["DISTRO_MODE"] .. ": " .. RLC.distroMode)
+        end
+    end
+    if data.autoAnnounce ~= nil then
+        RaidLootCounterDB.autoAnnounce = data.autoAnnounce
+        if RaidLootCounterFrameAutoAnnounceCheckbox then
+            RaidLootCounterFrameAutoAnnounceCheckbox:SetChecked(RaidLootCounterDB.autoAnnounce)
+        end
+    end
+    if data.stopRollCountdown ~= nil then
+        RaidLootCounterDB.stopRollCountdown = data.stopRollCountdown
+        if RaidLootCounterFrameStopRollCountdownCheckbox then
+            RaidLootCounterFrameStopRollCountdownCheckbox:SetChecked(RaidLootCounterDB.stopRollCountdown)
+        end
+    end
+
+    -- 恢复玩家
+    for playerName, p in pairs(data.players) do
+        RaidLootCounterDB.players[playerName] = {
+            msCount = p.msCount or 0,
+            osCount = p.osCount or 0,
+            class = p.class or "WARRIOR"
+        }
+    end
+
+    -- 恢复Boss和物品
+    for guid, b in pairs(data.bosses) do
+        RaidLootCounterDB.lootedBosses[guid] = {
+            name = b.name,
+            instance = b.instance,
+            timestamp = b.timestamp or 0,
+            loot = b.loot or {}
+        }
+    end
+
+    -- 刷新显示
+    RLC:RefreshDisplay()
+
+    if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
+        RLC:RefreshLootHistory()
+    end
+
+    -- 统计
+    local playerCount, bossCount, itemCount = 0, 0, 0
+    for _ in pairs(data.players) do playerCount = playerCount + 1 end
+    for _, b in pairs(data.bosses) do
+        bossCount = bossCount + 1
+        itemCount = itemCount + #b.loot
+    end
+
+    print(ns.CONSTANTS.CHAT_PREFIX .. string.format(
+        L["BACKUP_IMPORT_SUCCESS"] or "Restored %d players, %d bosses, %d items.",
+        playerCount, bossCount, itemCount))
+end
+
+-- 创建备份窗口
+local function CreateBackupFrame()
+    local frame = CreateFrame("Frame", "RLCBackupFrame", UIParent)
+    frame:SetSize(600, 400)
+    frame:SetPoint("CENTER")
+    frame:SetFrameStrata("DIALOG")
+    frame:EnableMouse(true)
+    frame:SetMovable(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    frame:SetClampedToScreen(true)
+
+    -- 背景（使用 SetBackdrop 保证兼容性）
+    frame:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true,
+        tileSize = 32,
+        edgeSize = 16,
+        insets = { left = 12, right = 12, top = 25, bottom = 12 }
+    })
+    frame:SetBackdropColor(0, 0, 0, 1)
+    frame:SetBackdropBorderColor(0.5, 0.5, 0.5)
+
+    -- 不透明底色（BACKGROUND 层铺纯色，位于 backdrop 之下，保证弹窗完全不透）
+    local solidBg = frame:CreateTexture(nil, "BACKGROUND")
+    solidBg:SetAllPoints(frame)
+    solidBg:SetTexture("Interface\\Buttons\\WHITE8X8")
+    solidBg:SetVertexColor(0, 0, 0, 1)
+
+    -- 标题栏
+    local titleBar = frame:CreateTexture(nil, "ARTWORK", nil, 1)
+    titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -25)
+    titleBar:SetHeight(25)
+    titleBar:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
+    titleBar:SetTexCoord(0, 1, 0, 0.5)
+
+    -- 标题
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOP", frame, "TOP", 0, -12)
+    title:SetText(L["BACKUP_WINDOW_TITLE"] or "Data Backup & Restore")
+    frame.title = title
+
+    -- ============================================================
+    -- 可见框（带 backdrop，保持原样不动）
+    -- ============================================================
+    local textBox = CreateFrame("Frame", "RLCBackupTextBox", frame)
+    textBox:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -34)
+    textBox:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 68)
+    textBox:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    textBox:SetBackdropColor(0, 0, 0, 0.85)
+    textBox:SetBackdropBorderColor(0.55, 0.55, 0.55, 1)
+
+    -- ============================================================
+    -- 可见框与编辑框分离：backdrop 边框在 textBox，EditBox 内缩为其子框。
+    -- （此客户端实测：EditBox 作为 ScrollFrame 滚动子对象时文本不渲染，
+    --   因此不用 ScrollFrame，改为多行框 + 滚轮/光标滚动。）
+    -- ============================================================
+    local editBox = CreateFrame("EditBox", "RLCBackupEditBox", textBox)
+    editBox:SetPoint("TOPLEFT", textBox, "TOPLEFT", 8, -8)
+    editBox:SetPoint("BOTTOMRIGHT", textBox, "BOTTOMRIGHT", -8, 8)
+    editBox:SetMultiLine(true)
+    -- 必须传 Font 对象：SetFont 传名字字符串在 3.3.5 会被当作文件路径而静默失败，导致文本不渲染
+    editBox:SetFontObject(GameFontNormalSmall)
+    editBox:SetTextColor(1, 1, 1)
+    editBox:SetTextInsets(4, 4, 4, 4)
+    editBox:SetAutoFocus(false)
+    editBox:SetMaxLetters(100000)
+    editBox:SetText(L["BACKUP_EDITBOX_PLACEHOLDER"] or "Export text will appear here...")
+    -- Esc 关闭窗口（3.3.5 自定义 DIALOG frame 不会自动响应 Esc）
+    editBox:SetScript("OnEscapePressed", function()
+        frame:Hide()
+    end)
+
+    -- 多行 EditBox 默认不响应滚轮；通过滚轮移动光标实现滚动（3.3.5 光标跟随自动滚动）。
+    -- 每格滚约 3 行（按当前编辑框宽度估算每行字符数）。
+    editBox:SetScript("OnMouseWheel", function(self, delta)
+        local lineHeight = select(2, self:GetFont()) or 12
+        local _, y = self:GetCursorPosition()                     -- y 为光标在文本中的像素位置（自上而下）
+        local curLine = math.max(0, math.floor(y / lineHeight))   -- 当前行（0 起）
+        local left, right = self:GetTextInsets()
+        local usableWidth = math.max(1, self:GetWidth() - left - right)
+        local charsPerLine = math.max(1, math.floor(usableWidth / 6.0))
+        local targetLine = math.max(0, curLine - delta * 3)
+        local targetPos = math.min(self:GetNumLetters(), math.floor(targetLine * charsPerLine))
+        self:SetCursorPosition(targetPos)                         -- 移动光标 → 视图跟随滚动
+    end)
+
+    frame.editBox = editBox
+    frame.textBox = textBox
+
+    -- 导入按钮
+    local importBtn = CreateFrame("Button", "RLCBackupImportBtn", frame, "UIPanelButtonTemplate")
+    importBtn:SetSize(160, 25)
+    importBtn:SetPoint("BOTTOMRIGHT", frame, "BOTTOM", -15, 15)
+    importBtn:SetText(L["BACKUP_BTN_IMPORT"] or "Import")
+    importBtn:SetScript("OnClick", function()
+        RLC:ImportFromText(editBox:GetText())
+    end)
+
+    -- 取消按钮
+    local cancelBtn = CreateFrame("Button", "RLCBackupCancelBtn", frame, "UIPanelButtonTemplate")
+    cancelBtn:SetSize(160, 25)
+    cancelBtn:SetPoint("LEFT", importBtn, "RIGHT", 10, 0)
+    cancelBtn:SetText(L["BACKUP_BTN_CANCEL"] or "Cancel")
+    cancelBtn:SetScript("OnClick", function()
+        frame:Hide()
+    end)
+
+    -- 提示文字
+    local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hint:SetPoint("BOTTOM", frame, "BOTTOM", 0, 45)
+    hint:SetText(L["BACKUP_EDITBOX_SELECT_ALL"] or "(Ctrl+A to select all, Ctrl+C to copy)")
+    hint:SetTextColor(0.6, 0.6, 0.6)
+    hint:Hide()
+    frame.hint = hint
+
+    -- 显示时居中
+    frame:SetScript("OnShow", function()
+        frame:SetPoint("CENTER")
+    end)
+
+    -- 隐藏时清除焦点与选区，避免再次打开时 EditBox 状态异常
+    frame:SetScript("OnHide", function()
+        if editBox then
+            editBox:ClearFocus()
+            editBox:HighlightText(0, 0)
+        end
+    end)
+
+    return frame
+end
+
+-- 显示备份窗口（自动导出当前数据）
+function RLC:ShowBackupWindow(text)
+    if not RLCBackupFrame then
+        RLCBackupFrame = CreateBackupFrame()
+    end
+
+    -- 更新本地化文字
+    if RLCBackupImportBtn then
+        RLCBackupImportBtn:SetText(L["BACKUP_BTN_IMPORT"] or "Import")
+    end
+    if RLCBackupCancelBtn then
+        RLCBackupCancelBtn:SetText(L["BACKUP_BTN_CANCEL"] or "Cancel")
+    end
+    if RLCBackupFrame.title then
+        RLCBackupFrame.title:SetText(L["BACKUP_WINDOW_TITLE"] or "Data Backup & Restore")
+    end
+
+    -- 如果没有传入文本，自动导出当前数据
+    if not text and RLCBackupFrame.editBox then
+        local data = {
+            version = 1,
+            distroMode = RaidLootCounterDB.distroMode or "MS+1",
+            autoAnnounce = RaidLootCounterDB.autoAnnounce or false,
+            stopRollCountdown = RaidLootCounterDB.stopRollCountdown or false,
+            players = {},
+            bosses = {}
+        }
+
+        for playerName, p in pairs(RaidLootCounterDB.players or {}) do
+            if p and type(p) == "table" then
+                data.players[playerName] = {
+                    msCount = p.msCount or 0,
+                    osCount = p.osCount or 0,
+                    class = p.class or "WARRIOR"
+                }
+            end
+        end
+
+        for guid, b in pairs(RaidLootCounterDB.lootedBosses or {}) do
+            if b and type(b) == "table" and b.loot then
+                local bossData = {
+                    name = b.name or "Unknown",
+                    instance = b.instance or "Unknown",
+                    timestamp = b.timestamp or 0,
+                    loot = {}
+                }
+                for _, item in ipairs(b.loot) do
+                    if type(item) == "table" then
+                        table.insert(bossData.loot, {
+                            link = item.link,
+                            holder = item.holder,
+                            type = item.type or "UNASSIGN"
+                        })
+                    elseif item then
+                        table.insert(bossData.loot, {
+                            link = item,
+                            holder = nil,
+                            type = "UNASSIGN"
+                        })
+                    end
+                end
+                data.bosses[guid] = bossData
+            end
+        end
+
+        text = ns.Compress.Encode(jsonEncode(data))
+    end
+
+    local hasText = (text and RLCBackupFrame.editBox)
+    if hasText then
+        RLCBackupFrame.editBox:SetText(text)
+        if RLCBackupFrame.hint then RLCBackupFrame.hint:Show() end
+    else
+        if RLCBackupFrame.hint then RLCBackupFrame.hint:Hide() end
+    end
+
+    RLCBackupFrame:Show()
+
+    -- 3.3.5 无 EditBox:SetSelected（Cataclysm 才加入）；多行框全选会把末行高亮铺满整行宽造成"溢出"。
+    -- 标准做法（同 AceGUI MultiLineEditBox）：打开时不自动全选，仅置焦点，用户 Ctrl+A 自行全选。
+    if hasText and RLCBackupFrame.editBox then
+        RLCBackupFrame.editBox:SetFocus()
+    end
+end
+
 -- Roll 相关逻辑已移动到独立模块 RLC_Roll.lua
 
 -- ============================================================================
@@ -873,8 +1458,11 @@ end
 
 function RLC:OnLootSelectionRowEnter(row, anchor)
     if not row or not row.data or not row.data.link then return end
-    GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
-    GameTooltip:SetHyperlink(row.data.link)
+    -- pcall 保护：RatingBuster/StatLogic 等 tooltip 钩子在此客户端可能报错，不影响本体 tooltip 显示
+    pcall(function()
+        GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
+        GameTooltip:SetHyperlink(row.data.link)
+    end)
     GameTooltip:Show()
 end
 
@@ -1009,6 +1597,7 @@ local function InitUI()
     if RaidLootCounterFrameTitle then RaidLootCounterFrameTitle:SetText(L["WINDOW_TITLE"]) end
     if RaidLootCounterFrameSyncButton then RaidLootCounterFrameSyncButton:SetText(L["SYNC_RAID"]) end
     if RaidLootCounterFrameClearButton then RaidLootCounterFrameClearButton:SetText(L["CLEAR_DATA"]) end
+    if RaidLootCounterFrameBackupButton then RaidLootCounterFrameBackupButton:SetText(L["BACKUP_BUTTON"]) end
     if RaidLootCounterFrameSendButton then RaidLootCounterFrameSendButton:SetText(L["SEND_STATS"]) end
     if RaidLootCounterFrameViewLootButton then RaidLootCounterFrameViewLootButton:SetText(L["VIEW_LOOT"]) end
     if RaidLootCounterFrameDistroModeButton then RaidLootCounterFrameDistroModeButton:SetText(L["DISTRO_MODE"] .. ": " .. RLC.distroMode) end

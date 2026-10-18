@@ -7,6 +7,7 @@ local enUS = {
     ["CLEAR_DATA"] = "Clear Data",
     ["SEND_STATS"] = "Send Stats",
     ["VIEW_LOOT"] = "View Loot",
+    ["BACKUP_BUTTON"] = "Export/Import",
     ["DISTRO_MODE"] = "Distro Mode",
     ["DISTRO_MODE_TITLE"] = "Distribution Mode",
     ["DISTRO_MODE_LABEL"] = "Please select a distribution mode:",
@@ -81,7 +82,7 @@ local enUS = {
     ["BUTTON_SAVE"] = "Save",
     ["TITLE_MANUAL_ADD"] = "Manual Add Loot",
     ["BOSS_MANUAL_ADD"] = "Manual Add",
-    ["MSG_MANUAL_ADD_SUCCESS"] = "Added %s to history.",
+    ["MSG_MANUAL_ADD_SUCCESS"] = "Added %d items to history.",
     ["MSG_NO_ITEM_SELECTED"] = "Please select an item first.",
 
     -- Errors / Info
@@ -92,6 +93,26 @@ local enUS = {
     -- Auto announce toggle
     ["AUTO_ANNOUNCE_ON"] = "Auto announce: |cff00ff00Enabled|r",
     ["AUTO_ANNOUNCE_OFF"] = "Auto announce: |cffff0000Disabled|r",
+
+    -- Export/Import (Backup & Restore)
+    ["BACKUP_WINDOW_TITLE"] = "Data Backup & Restore",
+    ["BACKUP_EDITBOX_PLACEHOLDER"] = "Export text will appear here...",
+    ["BACKUP_EDITBOX_SELECT_ALL"] = "(Ctrl+A to select all, Ctrl+C to copy)",
+    ["BACKUP_BTN_EXPORT"] = "Export & Select All",
+    ["BACKUP_BTN_IMPORT"] = "Import",
+    ["BACKUP_BTN_CANCEL"] = "Cancel",
+    ["BACKUP_BTN_CLOSE"] = "Close",
+    ["BACKUP_EXPORT_SUCCESS"] = "Exported %d players, %d bosses, %d items to chat and clipboard-ready field.",
+    ["BACKUP_IMPORT_SUCCESS"] = "Restored %d players, %d bosses, %d items.",
+    ["BACKUP_IMPORT_EMPTY"] = "EditBox is empty. Please paste export text first.",
+    ["BACKUP_IMPORT_FAILED"] = "Failed to parse export text. Please check format.",
+    ["BACKUP_IMPORT_PARTIAL"] = "Restored partially: %d players, %d bosses, %d items.",
+    ["BACKUP_NO_DATA_TO_EXPORT"] = "No data to export. Sync raid and collect loot first.",
+    ["MSG_SAVE_REMINDER_BOSS"] = "Boss loot recorded. Consider /rlc export to backup before crash.",
+    ["MSG_SAVE_REMINDER_ASSIGN"] = "Data updated. Consider /rlc export or /reload to prevent data loss.",
+    ["MSG_SAVE_REMINDER_LOAD"] = "Tip: Use /rlc export to backup data, /rlc import to restore.",
+    ["BACKUP_EXPORT_HEADER"] = "--- RLC Data Export ---",
+    ["BACKUP_EXPORT_FOOTER"] = "--- End of Export ---",
 
     -- Instance Abbreviations
     ["INSTANCE_ABBREVIATIONS"] = {

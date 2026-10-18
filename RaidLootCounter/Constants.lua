@@ -196,3 +196,19 @@ function ns.LootUtil.NormalizeLootItem(lootTable, index)
 
     return item
 end
+
+-- ============================================================================
+-- Export Format Constants
+-- ============================================================================
+
+ns.CONSTANTS.EXPORT = {
+    VERSION = "v1",
+    BEGIN_MARKER = "[RLC:EXPORT v1] === BEGIN ===",
+    END_MARKER = "[RLC:EXPORT v1] === END ===",
+    PLAYER_PREFIX = "[RLC:PLAYER]",
+    BOSS_PREFIX = "[RLC:BOSS#",
+    ITEM_PREFIX = "[RLC:ITEM#",
+    CONFIG_PREFIX = "[RLC:CONFIG]",
+    SEPARATOR = "|",
+    UNASSIGNED_HOLDER = "N",
+}

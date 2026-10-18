@@ -235,8 +235,12 @@ end
 
 function RLC:OnHistoryRowEnter(row, anchor)
     if row.data and row.data.link then
-        GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
-        GameTooltip:SetHyperlink(row.data.link)
+        -- pcall 保护：RatingBuster/StatLogic 等 tooltip 钩子在此客户端可能报错
+        -- （其内部 StatLogicTooltip 有行未设字体），不影响本体 tooltip 显示
+        pcall(function()
+            GameTooltip:SetOwner(anchor or row, "ANCHOR_RIGHT")
+            GameTooltip:SetHyperlink(row.data.link)
+        end)
         GameTooltip:Show()
     end
 end
@@ -334,7 +338,16 @@ end
 
 local manualAddRows = {}
 local manualAddData = {}
-local selectedManualItem = nil
+local selectedManualItems = {}   -- 手动添加多选：点击切换选中，保存时批量加入历史
+
+-- 判断指定数据是否已被选中（用于高亮与切换）
+local function IsManualItemSelected(data)
+    if not data then return false end
+    for _, item in ipairs(selectedManualItems) do
+        if item == data then return true end
+    end
+    return false
+end
 
 local function GetManualAddRow(parent, index)
     if not manualAddRows[index] then
@@ -350,6 +363,15 @@ local function GetManualAddRow(parent, index)
         row:SetScript("OnClick", function(self)
              RLC:OnManualAddRowClick(self)
         end)
+
+        -- 模板里 itemHitBox 的 OnClick 默认指向拾取分配的选择处理（OnLootSelectionRowClick），
+        -- 手动添加复用了该模板；itemHitBox 覆盖在物品名区域，若不改指，
+        -- 点击物品名会走错处理器 → selectedManualItem 不注册、保存报"请选择一件装备"。
+        if row.itemHitBox then
+            row.itemHitBox:SetScript("OnClick", function(self)
+                RLC:OnManualAddRowClick(self:GetParent())
+            end)
+        end
 
         -- Init highlight
         row.highlight = _G[rowName.."Highlight"]
@@ -384,7 +406,7 @@ end
 
 function RLC:RefreshManualAddList()
     manualAddData = {}
-    selectedManualItem = nil
+    selectedManualItems = {}
     
     -- Scan bags for Epic (4) or Legendary (5) items
     for bag = 0, 4 do
@@ -497,7 +519,7 @@ function RLC:UpdateManualAddScroll()
             row:SetWidth(760) 
             
             -- Update Highlight
-            if selectedManualItem and selectedManualItem == data then
+            if IsManualItemSelected(data) then
                 if row.highlight then row.highlight:Show() end
             else
                 if row.highlight then row.highlight:Hide() end
@@ -513,16 +535,31 @@ end
 function RLC:OnManualAddRowClick(row)
     if not row or not row.data then return end
     
-    for _, r in pairs(manualAddRows) do
-        if r.highlight then r.highlight:Hide() end
+    -- 切换选中：已在选中集合则移除（反选），否则加入（支持多选）
+    local found = false
+    for i, item in ipairs(selectedManualItems) do
+        if item == row.data then
+            table.remove(selectedManualItems, i)
+            found = true
+            break
+        end
+    end
+    if not found then
+        table.insert(selectedManualItems, row.data)
     end
     
-    if row.highlight then row.highlight:Show() end
-    selectedManualItem = row.data
+    -- 刷新该行高亮（选中高亮 / 反选取消）
+    if row.highlight then
+        if IsManualItemSelected(row.data) then
+            row.highlight:Show()
+        else
+            row.highlight:Hide()
+        end
+    end
 end
 
 function RLC:OnManualAddSaveClick()
-    if not selectedManualItem then
+    if #selectedManualItems == 0 then
         print(ns.CONSTANTS.CHAT_PREFIX .. (L["MSG_NO_ITEM_SELECTED"] or "Please select an item first."))
         return
     end
@@ -546,20 +583,24 @@ function RLC:OnManualAddSaveClick()
     
     local bossName = (L["BOSS_MANUAL_ADD"] or "Manual Add")
     
+    -- 批量：把所有选中的装备加入同一个"手动添加"Boss 条目的 loot 列表
+    local loot = {}
+    for _, item in ipairs(selectedManualItems) do
+        table.insert(loot, {
+            link = item.link,
+            holder = nil,
+            type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
+            isBOE = ns.IsItemBOE(item.link)
+        })
+    end
+    
     -- Construct Loot Data
     local guid = "Manual_" .. time() .. "_" .. math.random(1000)
     
     local lootData = {
         name = bossName,
         instance = instanceName .. difficultyName,
-        loot = {
-            {
-                link = selectedManualItem.link,
-                holder = nil,
-                type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
-                isBOE = ns.IsItemBOE(selectedManualItem.link)
-            }
-        },
+        loot = loot,
         timestamp = time()
     }
     
@@ -569,7 +610,7 @@ function RLC:OnManualAddSaveClick()
     
     RaidLootCounterDB.lootedBosses[guid] = lootData
     
-    print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["MSG_MANUAL_ADD_SUCCESS"] or "Added %s to history.", selectedManualItem.link))
+    print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["MSG_MANUAL_ADD_SUCCESS"] or "Added %d items to history.", #loot))
     
     -- Refresh History
     if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then

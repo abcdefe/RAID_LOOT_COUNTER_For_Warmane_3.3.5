@@ -9,6 +9,7 @@ local zhTW = {
     ["CLEAR_DATA"] = "清空數據",
     ["SEND_STATS"] = "發送統計",
     ["VIEW_LOOT"] = "查看掉落",
+    ["BACKUP_BUTTON"] = "匯出/匯入",
     ["DISTRO_MODE"] = "分配模式",
     ["DISTRO_MODE_TITLE"] = "分配模式",
     ["DISTRO_MODE_LABEL"] = "請選擇分配模式：",
@@ -82,7 +83,7 @@ local zhTW = {
     ["BUTTON_SAVE"] = "儲存",
     ["TITLE_MANUAL_ADD"] = "手動添加裝備",
     ["BOSS_MANUAL_ADD"] = "手動添加",
-    ["MSG_MANUAL_ADD_SUCCESS"] = "已添加 %s 到歷史記錄。",
+    ["MSG_MANUAL_ADD_SUCCESS"] = "已添加 %d 件裝備到歷史記錄。",
     ["MSG_NO_ITEM_SELECTED"] = "請先選擇一件裝備。",
 
     -- Errors / Info
@@ -93,6 +94,26 @@ local zhTW = {
     -- Auto announce toggle
     ["AUTO_ANNOUNCE_ON"] = "自動通報: |cff00ff00已開啟|r",
     ["AUTO_ANNOUNCE_OFF"] = "自動通報: |cffff0000已關閉|r",
+
+    -- Export/Import (Backup & Restore)
+    ["BACKUP_WINDOW_TITLE"] = "資料備份與恢復",
+    ["BACKUP_EDITBOX_PLACEHOLDER"] = "匯出文字將顯示在這裡...",
+    ["BACKUP_EDITBOX_SELECT_ALL"] = "（Ctrl+A 全選，Ctrl+C 複製）",
+    ["BACKUP_BTN_EXPORT"] = "匯出並全選",
+    ["BACKUP_BTN_IMPORT"] = "匯入",
+    ["BACKUP_BTN_CANCEL"] = "取消",
+    ["BACKUP_BTN_CLOSE"] = "關閉",
+    ["BACKUP_EXPORT_SUCCESS"] = "已匯出 %d 名玩家, %d 個 Boss, %d 件物品到聊天框和文字框。",
+    ["BACKUP_IMPORT_SUCCESS"] = "已恢復 %d 名玩家, %d 個 Boss, %d 件物品。",
+    ["BACKUP_IMPORT_EMPTY"] = "文字框為空。請先貼上匯出文字。",
+    ["BACKUP_IMPORT_FAILED"] = "解析匯出文字失敗。請檢查格式。",
+    ["BACKUP_IMPORT_PARTIAL"] = "部分恢復成功：%d 名玩家, %d 個 Boss, %d 件物品。",
+    ["BACKUP_NO_DATA_TO_EXPORT"] = "沒有可匯出的資料。請先同步團隊並拾取掉落。",
+    ["MSG_SAVE_REMINDER_BOSS"] = "Boss掉落已記錄。建議輸入 /rlc export 備份以防崩潰。",
+    ["MSG_SAVE_REMINDER_ASSIGN"] = "資料已更新。建議輸入 /rlc export 或 /reload 防止資料丟失。",
+    ["MSG_SAVE_REMINDER_LOAD"] = "提示：使用 /rlc export 匯出資料，/rlc import 恢復資料。",
+    ["BACKUP_EXPORT_HEADER"] = "--- RLC 資料匯出 ---",
+    ["BACKUP_EXPORT_FOOTER"] = "--- 匯出結束 ---",
 
     -- Instance Abbreviations
     ["INSTANCE_ABBREVIATIONS"] = {
