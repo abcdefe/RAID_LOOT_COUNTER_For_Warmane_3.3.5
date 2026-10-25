@@ -339,6 +339,7 @@ end
 local manualAddRows = {}
 local manualAddData = {}
 local selectedManualItems = {}   -- 手动添加多选：点击切换选中，保存时批量加入历史
+local manualAddMode = "add"   -- "add" or "block"
 
 -- 判断指定数据是否已被选中（用于高亮与切换）
 local function IsManualItemSelected(data)
@@ -386,7 +387,7 @@ local function GetManualAddRow(parent, index)
 end
 
 function RLC:OnManualAddClick()
-    -- Init localized text
+    manualAddMode = "add"
     if _G["RLCManualAddFrameTitle"] then
         _G["RLCManualAddFrameTitle"]:SetText(L["TITLE_MANUAL_ADD"] or "Manual Add Equipment")
     end
@@ -404,46 +405,111 @@ function RLC:OnManualAddClick()
     end
 end
 
+function RLC:OnBlockClick()
+    manualAddMode = "block"
+    if _G["RLCManualAddFrameTitle"] then
+        _G["RLCManualAddFrameTitle"]:SetText(L["TITLE_BLOCK"] or "Block Items")
+    end
+    if _G["RLCManualAddFrameSaveButton"] then
+        _G["RLCManualAddFrameSaveButton"]:SetText(L["BUTTON_BLOCK"] or "Block")
+    end
+
+    if RLCManualAddFrame:IsShown() then
+        RLCManualAddFrame:Hide()
+    else
+        RLCManualAddFrame:ClearAllPoints()
+        RLCManualAddFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        RLCManualAddFrame:Show()
+        RLC:RefreshManualAddList()
+    end
+end
+
+function RLC:OnUnblockClick()
+    manualAddMode = "unblock"
+    if _G["RLCManualAddFrameTitle"] then
+        _G["RLCManualAddFrameTitle"]:SetText(L["TITLE_UNBLOCK"] or "Block List")
+    end
+    if _G["RLCManualAddFrameSaveButton"] then
+        _G["RLCManualAddFrameSaveButton"]:SetText(L["BUTTON_UNBLOCK"] or "Unblock")
+    end
+
+    if RLCManualAddFrame:IsShown() then
+        RLCManualAddFrame:Hide()
+    else
+        RLCManualAddFrame:ClearAllPoints()
+        RLCManualAddFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        RLCManualAddFrame:Show()
+        RLC:RefreshManualAddList()
+    end
+end
+
 function RLC:RefreshManualAddList()
     manualAddData = {}
     selectedManualItems = {}
-    
-    -- Scan bags for Epic (4) or Legendary (5) items
-    for bag = 0, 4 do
-        local numSlots = GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local link = GetContainerItemLink(bag, slot)
-            if link then
-                local _, _, quality, iLevel = GetItemInfo(link)
-                
-                -- Fallback if GetItemInfo is not ready (returns nil)
-                if not quality then
-                    -- Parse color from link |cffRRGGBB
-                    if link:find("|cffa335ee") then -- Epic (Purple)
-                        quality = 4
-                    elseif link:find("|cffff8000") then -- Legendary (Orange)
-                        quality = 5
-                    elseif link:find("|cffe6cc80") then -- Heirloom (Gold)
-                        quality = 7
-                    end
-                end
+    print("[RLC Debug] RefreshManualAddList started, mode=" .. manualAddMode)
 
-                if quality and quality >= 4 then
-                    -- Check for BOE
-                    local isBOE = ns.IsItemBOE(link)
-                    
+    if manualAddMode == "unblock" then
+        -- Show currently blocked items from DB
+        if RaidLootCounterDB.blockedItems then
+            for itemID, itemLink in pairs(RaidLootCounterDB.blockedItems) do
+                if itemLink then
+                    local _, _, quality, iLevel = GetItemInfo(itemLink)
                     table.insert(manualAddData, {
-                        link = link,
-                        bag = bag,
-                        slot = slot,
-                        quality = quality,
+                        link = itemLink,
+                        quality = quality or 4,
                         iLevel = iLevel or 0,
-                        isBOE = isBOE
+                        isBOE = ns.IsItemBOE(itemLink)
                     })
                 end
             end
         end
-    end
+    else
+        -- Scan bags for Epic (4) or Legendary (5) items
+        for bag = 0, 4 do
+            local numSlots = GetContainerNumSlots(bag)
+            print("[RLC Debug] Bag " .. bag .. ": " .. numSlots .. " slots")
+            for slot = 1, numSlots do
+                local link = GetContainerItemLink(bag, slot)
+                if link then
+                    local _, _, quality, iLevel = GetItemInfo(link)
+                    
+                    -- Fallback if GetItemInfo is not ready (returns nil)
+                    if not quality then
+                        -- Parse color from link |cffRRGGBB
+                        if link:find("|cffa335ee") then -- Epic (Purple)
+                            quality = 4
+                        elseif link:find("|cffff8000") then -- Legendary (Orange)
+                            quality = 5
+                        elseif link:find("|cffe6cc80") then -- Heirloom (Gold)
+                            quality = 7
+                        end
+                    end
+
+                    if quality and quality >= 4 then
+                        print("[RLC Debug] Found Epic+ item: " .. link)
+                        -- Skip blocked items
+                        local itemID = ns.LootUtil.GetItemID(link)
+                        local isBlocked = itemID and RaidLootCounterDB.blockedItems and RaidLootCounterDB.blockedItems[itemID]
+                        if not isBlocked then
+                            -- Check for BOE
+                            local isBOE = ns.IsItemBOE(link)
+                            print("[RLC Debug] Item BOE=" .. tostring(isBOE) .. ", adding to list")
+                            
+                            table.insert(manualAddData, {
+                                link = link,
+                                bag = bag,
+                                slot = slot,
+                                quality = quality,
+                                iLevel = iLevel or 0,
+                                isBOE = isBOE,
+                                uid = (bag and slot and GetItemUID) and GetItemUID(bag, slot) or nil
+                            })
+                        end
+                    end
+                end
+            end
+        end
+        print("[RLC Debug] Scan complete, found " .. #manualAddData .. " items")
     
     -- Sort by quality desc, then name
     table.sort(manualAddData, function(a, b)
@@ -452,6 +518,7 @@ function RLC:RefreshManualAddList()
         end
         return a.quality > b.quality
     end)
+    end
     
     RLC:UpdateManualAddScroll()
 end
@@ -492,7 +559,8 @@ function RLC:UpdateManualAddScroll()
             local displayText = prefix .. link
             
             row.itemText:SetText(displayText)
-            row.detailsText:SetText("iLvl: " .. (data.iLevel or "?"))
+            local uid = data.uid or ns.LootUtil.GetItemID(data.link)
+            row.detailsText:SetText("iLvl: " .. (data.iLevel or "?") .. " | UID: " .. (uid or "?"))
 
             if row.itemHitBox then
                  row.itemText:SetText(prefix)
@@ -559,18 +627,67 @@ function RLC:OnManualAddRowClick(row)
 end
 
 function RLC:OnManualAddSaveClick()
+    print("[RLC Debug] OnManualAddSaveClick called, selected=" .. #selectedManualItems .. ", mode=" .. manualAddMode)
     if #selectedManualItems == 0 then
         print(ns.CONSTANTS.CHAT_PREFIX .. (L["MSG_NO_ITEM_SELECTED"] or "Please select an item first."))
         return
     end
-    
-    -- Gather environment info
+
+    if manualAddMode == "unblock" then
+        -- Unblock mode: remove selected items from blockedItems
+        local unblockedCount = 0
+        for _, item in ipairs(selectedManualItems) do
+            local itemID = ns.LootUtil.GetItemID(item.link)
+            if itemID and RaidLootCounterDB.blockedItems and RaidLootCounterDB.blockedItems[itemID] then
+                RaidLootCounterDB.blockedItems[itemID] = nil
+                unblockedCount = unblockedCount + 1
+            end
+        end
+
+        print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["MSG_UNBLOCK_SUCCESS"] or "Unblocked %d items.", unblockedCount))
+
+        -- Refresh History if shown
+        if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
+            RLC:RefreshLootHistory()
+        end
+
+        RLCManualAddFrame:Hide()
+        return
+    end
+
+    if manualAddMode == "block" then
+        -- Block mode: add selected items to blocked list
+        if not RaidLootCounterDB.blockedItems then
+            RaidLootCounterDB.blockedItems = {}
+        end
+
+        local blockedCount = 0
+        for _, item in ipairs(selectedManualItems) do
+            local itemID = ns.LootUtil.GetItemID(item.link)
+            if itemID then
+                RaidLootCounterDB.blockedItems[itemID] = item.link
+                blockedCount = blockedCount + 1
+            end
+        end
+
+        print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["MSG_BLOCK_SUCCESS"] or "Blocked %d items.", blockedCount))
+        
+        -- Refresh History if shown (blocked items will be filtered)
+        if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
+            RLC:RefreshLootHistory()
+        end
+        
+        RLCManualAddFrame:Hide()
+        return
+    end
+
+    -- Add mode: gather environment info
     local instanceName = GetInstanceInfo() or ns.CONSTANTS.DEFAULTS.UNKNOWN_INSTANCE
     local difficulty = GetInstanceDifficulty()
     local difficultyName = ""
     local SUFFIX = ns.CONSTANTS.DIFFICULTY_SUFFIX
     local _, instanceType = IsInInstance()
-    
+
     if instanceType == "party" then
         if difficulty == 1 then difficultyName = SUFFIX["5N"]
         elseif difficulty == 2 then difficultyName = SUFFIX["5H"] end
@@ -580,42 +697,46 @@ function RLC:OnManualAddSaveClick()
         elseif difficulty == 3 then difficultyName = SUFFIX["10H"]
         elseif difficulty == 4 then difficultyName = SUFFIX["25H"] end
     end
-    
+
     local bossName = (L["BOSS_MANUAL_ADD"] or "Manual Add")
-    
-    -- 批量：把所有选中的装备加入同一个"手动添加"Boss 条目的 loot 列表
+
+    -- Batch: add all selected items to one "Manual Add" boss entry
     local loot = {}
     for _, item in ipairs(selectedManualItems) do
+        local uid = nil
+        if item.bag and item.slot and GetItemUID then
+            uid = GetItemUID(item.bag, item.slot)
+        end
         table.insert(loot, {
             link = item.link,
             holder = nil,
             type = ns.CONSTANTS.LOOT_TYPE.UNASSIGN,
-            isBOE = ns.IsItemBOE(item.link)
+            isBOE = ns.IsItemBOE(item.link),
+            uid = uid
         })
     end
-    
-    -- Construct Loot Data
+
     local guid = "Manual_" .. time() .. "_" .. math.random(1000)
-    
+
     local lootData = {
         name = bossName,
         instance = instanceName .. difficultyName,
         loot = loot,
         timestamp = time()
     }
-    
+
     if not RaidLootCounterDB.lootedBosses then
         RaidLootCounterDB.lootedBosses = {}
     end
-    
+
     RaidLootCounterDB.lootedBosses[guid] = lootData
-    
+
     print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["MSG_MANUAL_ADD_SUCCESS"] or "Added %d items to history.", #loot))
-    
+
     -- Refresh History
     if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
         RLC:RefreshLootHistory()
     end
-    
+
     RLCManualAddFrame:Hide()
 end

@@ -499,6 +499,15 @@
             </EdgeSize>
         </Backdrop>
         <Layers>
+            <Layer level="BACKGROUND">
+                <Texture setAllTexCoords="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                        <Anchor point="BOTTOMRIGHT"/>
+                    </Anchors>
+                    <Color r="0.1" g="0.1" b="0.15" a="0.85"/>
+                </Texture>
+            </Layer>
             <Layer level="OVERLAY">
                 <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Loot History">
                     <Anchors>
@@ -514,10 +523,24 @@
                 </Anchors>
             </Button>
             
-            <Button name="$parentManualAddButton" inherits="UIPanelButtonTemplate">
-                <Size x="100" y="22"/>
+            <Button name="$parentBlockButton" inherits="UIPanelButtonTemplate">
+                <Size x="60" y="22"/>
                 <Anchors>
-                    <Anchor point="TOPRIGHT" relativeTo="$parentTitle" relativePoint="TOPRIGHT" x="120" y="0"/>
+                    <Anchor point="TOP" relativeTo="$parentTitle" relativePoint="BOTTOM" x="0" y="-5"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnBlockClick then
+                            RLC:OnBlockClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
+            <Button name="$parentAddButton" inherits="UIPanelButtonTemplate">
+                <Size x="60" y="22"/>
+                <Anchors>
+                    <Anchor point="RIGHT" relativeTo="$parentBlockButton" relativePoint="LEFT" x="-10" y="0"/>
                 </Anchors>
                 <Scripts>
                     <OnClick>
@@ -528,9 +551,23 @@
                 </Scripts>
             </Button>
 
+            <Button name="$parentUnblockButton" inherits="UIPanelButtonTemplate">
+                <Size x="60" y="22"/>
+                <Anchors>
+                    <Anchor point="LEFT" relativeTo="$parentBlockButton" relativePoint="RIGHT" x="10" y="0"/>
+                </Anchors>
+                <Scripts>
+                    <OnClick>
+                        if RLC and RLC.OnUnblockClick then
+                            RLC:OnUnblockClick()
+                        end
+                    </OnClick>
+                </Scripts>
+            </Button>
+
             <ScrollFrame name="RLCLootHistoryScrollFrame" inherits="FauxScrollFrameTemplate">
                 <Anchors>
-                    <Anchor point="TOPLEFT" x="20" y="-50"/>
+                    <Anchor point="TOPLEFT" x="20" y="-72"/>
                     <Anchor point="BOTTOMRIGHT" x="-40" y="20"/>
                 </Anchors>
                 <Scripts>
@@ -582,6 +619,15 @@
             </EdgeSize>
         </Backdrop>
         <Layers>
+            <Layer level="BACKGROUND">
+                <Texture setAllTexCoords="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                        <Anchor point="BOTTOMRIGHT"/>
+                    </Anchors>
+                    <Color r="0.1" g="0.1" b="0.15" a="0.85"/>
+                </Texture>
+            </Layer>
             <Layer level="OVERLAY">
                 <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Manual Add Loot">
                     <Anchors>
@@ -609,7 +655,7 @@
                 </Scripts>
             </ScrollFrame>
             
-            <Button name="$parentSaveButton" inherits="UIPanelButtonTemplate">
+            <Button name="$parentSaveButton" inherits="UIPanelButtonTemplate" text="Save">
                 <Size x="100" y="25"/>
                 <Anchors>
                     <Anchor point="BOTTOM" x="0" y="20"/>
@@ -826,6 +872,15 @@
             </EdgeSize>
         </Backdrop>
         <Layers>
+            <Layer level="BACKGROUND">
+                <Texture setAllTexCoords="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                        <Anchor point="BOTTOMRIGHT"/>
+                    </Anchors>
+                    <Color r="0.1" g="0.1" b="0.15" a="0.85"/>
+                </Texture>
+            </Layer>
             <Layer level="OVERLAY">
                 <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Manual Add Loot">
                     <Anchors>
@@ -853,7 +908,7 @@
                 </Scripts>
             </ScrollFrame>
             
-            <Button name="$parentSaveButton" inherits="UIPanelButtonTemplate">
+            <Button name="$parentSaveButton" inherits="UIPanelButtonTemplate" text="Save">
                 <Size x="100" y="25"/>
                 <Anchors>
                     <Anchor point="BOTTOM" x="0" y="20"/>
