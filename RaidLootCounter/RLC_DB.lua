@@ -17,6 +17,7 @@ local RESERVED_KEYS = {
     lootedBosses = true,
     players = true,
     meta = true,
+    blockedItems = true,
 }
 
 local CURRENT_DB_VERSION = 1
@@ -113,11 +114,16 @@ function DB.Init()
     if not RaidLootCounterDB.distroMode then
         RaidLootCounterDB.distroMode = "MS+1"
     end
+
+    if not RaidLootCounterDB.blockedItems then
+        RaidLootCounterDB.blockedItems = {}
+    end
 end
 
 function DB.ClearAllData()
     RaidLootCounterDB.players = {}
     RaidLootCounterDB.lootedBosses = {}
+    RaidLootCounterDB.blockedItems = {}
 end
 
 function DB.IsEmpty()

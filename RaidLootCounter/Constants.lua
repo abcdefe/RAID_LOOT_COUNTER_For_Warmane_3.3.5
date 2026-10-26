@@ -173,7 +173,10 @@ end
 -- 检查物品是否应该被排除
 function ns.LootUtil.IsItemExcluded(itemLink)
     local itemID = ns.LootUtil.GetItemID(itemLink)
-    return itemID and ns.CONSTANTS.LOOT_CONFIG.EXCLUDED_ITEM_IDS[itemID] or false
+    if not itemID then return false end
+    if ns.CONSTANTS.LOOT_CONFIG.EXCLUDED_ITEM_IDS[itemID] then return true end
+    if RaidLootCounterDB and RaidLootCounterDB.blockedItems and RaidLootCounterDB.blockedItems[itemID] then return true end
+    return false
 end
 
 -- 统一规范化掉落条目结构，兼容旧的字符串格式

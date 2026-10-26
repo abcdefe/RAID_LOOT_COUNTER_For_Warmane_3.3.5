@@ -42,7 +42,14 @@ function ns.IsItemBOE(itemLink)
     end
     
     tooltipScanner:ClearLines()
-    tooltipScanner:SetHyperlink(itemLink)
+    -- pcall: RatingBuster tooltip hooks can crash SetHyperlink
+    local ok = pcall(tooltipScanner.SetHyperlink, tooltipScanner, itemLink)
+    if not ok then
+        -- SetHyperlink failed (RatingBuster hook crash), cache as false and move on
+        ns.ItemCache[itemLink] = ns.ItemCache[itemLink] or {}
+        ns.ItemCache[itemLink].isBOE = false
+        return false
+    end
     
     for i = 1, tooltipScanner:NumLines() do
         local line = _G["RLCScannerTooltipTextLeft" .. i]
@@ -100,7 +107,14 @@ function ns.GetItemTier(itemLink)
     end
     
     tooltipScanner:ClearLines()
-    tooltipScanner:SetHyperlink(itemLink)
+    -- pcall: RatingBuster tooltip hooks can crash SetHyperlink
+    local ok = pcall(tooltipScanner.SetHyperlink, tooltipScanner, itemLink)
+    if not ok then
+        -- SetHyperlink failed (RatingBuster hook crash), cache tier as nil
+        ns.ItemCache[itemLink] = ns.ItemCache[itemLink] or {}
+        ns.ItemCache[itemLink].tier = nil
+        return nil
+    end
     
     -- Check lines for Set Name
     -- Usually "Set Name (0/5)"
@@ -1296,16 +1310,21 @@ function RLC:ShowLootSelection(playerName, mode)
                     end
                     
                     if shouldInclude then
-                        table.insert(RLC.lootSelectionData, {
-                            bossGUID = bossGUID,
-                            bossName = data.name,
-                            instanceName = ns.CONSTANTS.INSTANCE_ABBREVIATIONS[data.instance] or data.instance,
-                            lootIndex = i,
-                            link = link,
-                            timestamp = data.timestamp,
-                            type = itemType,
-                            isBOE = isBOE
-                        })
+                        -- Skip blocked items (except in UNASSIGN mode)
+                        local itemID = ns.LootUtil.GetItemID(link)
+                        local isBlocked = itemID and RaidLootCounterDB.blockedItems and RaidLootCounterDB.blockedItems[itemID]
+                        if not (isBlocked and RLC.selectionMode ~= ns.CONSTANTS.MODES.UNASSIGN) then
+                            table.insert(RLC.lootSelectionData, {
+                                bossGUID = bossGUID,
+                                bossName = data.name,
+                                instanceName = ns.CONSTANTS.INSTANCE_ABBREVIATIONS[data.instance] or data.instance,
+                                lootIndex = i,
+                                link = link,
+                                timestamp = data.timestamp,
+                                type = itemType,
+                                isBOE = isBOE
+                            })
+                        end
                     end
                 end
             end
@@ -1617,7 +1636,9 @@ local function InitUI()
     if RaidLootCounterFrameStopRollCaptureButton then RaidLootCounterFrameStopRollCaptureButton:SetText(L["STOP_ROLL_CAPTURE"]) end
     
     -- Manual Add Frame and Buttons
-    if RaidLootCounterLootHistoryFrameManualAddButton then RaidLootCounterLootHistoryFrameManualAddButton:SetText(L["BUTTON_MANUAL_ADD"]) end
+    if RaidLootCounterLootHistoryFrameAddButton then RaidLootCounterLootHistoryFrameAddButton:SetText(L["BUTTON_MANUAL_ADD"]) end
+    if RaidLootCounterLootHistoryFrameBlockButton then RaidLootCounterLootHistoryFrameBlockButton:SetText(L["BUTTON_BLOCK"]) end
+    if RaidLootCounterLootHistoryFrameUnblockButton then RaidLootCounterLootHistoryFrameUnblockButton:SetText(L["BUTTON_UNBLOCK"]) end
     if RLCManualAddFrameTitle then RLCManualAddFrameTitle:SetText(L["TITLE_MANUAL_ADD"]) end
     if RLCManualAddFrameSaveButton then RLCManualAddFrameSaveButton:SetText(L["BUTTON_SAVE"]) end
 end
