@@ -26,6 +26,16 @@ local LootUtil = ns.LootUtil
 local CLASS_COLORS = ns.CONSTANTS.CLASS_COLORS
 local ENGLISH_CLASS_NAMES = ns.CONSTANTS.ENGLISH_CLASS_NAMES
 
+-- 自定义装备渲染字体（fonts 目录）
+local RLC_EQUIP_FONT_PATH = "Interface\\AddOns\\RaidLootCounter\\fonts\\Alibaba_PuHuiTi_2.0_65_Medium_65_Medium.ttf"
+
+-- 将自定义字体应用到装备渲染 FontString，保留原字号/标志
+function ns.ApplyEquipmentFont(fontString)
+    if not fontString then return end
+    local _, size, flags = fontString:GetFont()
+    fontString:SetFont(RLC_EQUIP_FONT_PATH, size or 12, flags or "")
+end
+
 -- 工具函数：检查物品是否为装备绑定 (BOE)
 local tooltipScanner
 function ns.IsItemBOE(itemLink)
@@ -1129,6 +1139,9 @@ local function GetLootSelectionRow(parent, index)
         row.bossText = _G[rowName.."Boss"]
         row.itemHitBox = _G[rowName.."ItemHitBox"]
         row.highlight = _G[rowName.."Highlight"]
+        -- 应用自定义装备字体
+        ns.ApplyEquipmentFont(row.itemText)
+        ns.ApplyEquipmentFont(row.bossText)
         lootSelectionRows[index] = row
     end
     local row = lootSelectionRows[index]
@@ -1639,6 +1652,7 @@ local function InitUI()
     if RaidLootCounterLootHistoryFrameAddButton then RaidLootCounterLootHistoryFrameAddButton:SetText(L["BUTTON_MANUAL_ADD"]) end
     if RaidLootCounterLootHistoryFrameBlockButton then RaidLootCounterLootHistoryFrameBlockButton:SetText(L["BUTTON_BLOCK"]) end
     if RaidLootCounterLootHistoryFrameUnblockButton then RaidLootCounterLootHistoryFrameUnblockButton:SetText(L["BUTTON_UNBLOCK"]) end
+    if RaidLootCounterLootHistoryFrameRemoveButton then RaidLootCounterLootHistoryFrameRemoveButton:SetText(L["BUTTON_REMOVE"]) end
     if RLCManualAddFrameTitle then RLCManualAddFrameTitle:SetText(L["TITLE_MANUAL_ADD"]) end
     if RLCManualAddFrameSaveButton then RLCManualAddFrameSaveButton:SetText(L["BUTTON_SAVE"]) end
 end
@@ -1767,6 +1781,7 @@ local function OnAddonLoaded(self, event, addonName)
         hideOnEscape = true,
         preferredIndex = 3,
     }
+
     
     print(ns.CONSTANTS.CHAT_PREFIX .. L["MSG_LOADED"])
 end
