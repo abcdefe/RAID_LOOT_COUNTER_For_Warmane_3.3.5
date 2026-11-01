@@ -91,6 +91,14 @@ local zhTW = {
     ["BUTTON_UNBLOCK"] = "解除屏蔽",
     ["TITLE_UNBLOCK"] = "屏蔽清單",
     ["MSG_UNBLOCK_SUCCESS"] = "已解除 %d 件裝備的屏蔽。",
+    ["BUTTON_REMOVE"] = "移除裝備",
+    ["TITLE_REMOVE"] = "移除裝備",
+    ["TITLE_REMOVE_CONFIRM"] = "確認移除裝備",
+    ["BUTTON_REMOVE_CONFIRM"] = "確認移除",
+    ["CONFIRM_REMOVE_TEXT"] = "確定移除選中的裝備？移除後無法恢復，只能手動重新加入。",
+    ["CONFIRM_REMOVE_LIST"] = "選中的裝備：",
+    ["CONFIRM_REMOVE"] = "確認移除",
+    ["MSG_REMOVE_SUCCESS"] = "已移除 %d 件裝備。",
     ["MSG_NO_ITEM_SELECTED"] = "請先選擇一件裝備。",
 
     -- Errors / Info

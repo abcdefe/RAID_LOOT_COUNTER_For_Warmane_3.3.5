@@ -90,6 +90,14 @@ local enUS = {
     ["BUTTON_UNBLOCK"] = "Unblock",
     ["TITLE_UNBLOCK"] = "Block List",
     ["MSG_UNBLOCK_SUCCESS"] = "Unblocked %d items.",
+    ["BUTTON_REMOVE"] = "Remove",
+    ["TITLE_REMOVE"] = "Remove Equipment",
+    ["TITLE_REMOVE_CONFIRM"] = "Confirm Remove Equipment",
+    ["BUTTON_REMOVE_CONFIRM"] = "Confirm Remove",
+    ["CONFIRM_REMOVE_TEXT"] = "Remove selected items? Removed items cannot be recovered and can only be re-added manually.",
+    ["CONFIRM_REMOVE_LIST"] = "Selected items:",
+    ["CONFIRM_REMOVE"] = "Confirm Remove",
+    ["MSG_REMOVE_SUCCESS"] = "Removed %d items.",
     ["MSG_NO_ITEM_SELECTED"] = "Please select an item first.",
 
     -- Errors / Info

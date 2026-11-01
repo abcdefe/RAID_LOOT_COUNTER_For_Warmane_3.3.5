@@ -12,6 +12,8 @@ local function GetHistoryRow(parent, index)
         local row = CreateFrame("Button", rowName, parent, "RLC_LootHistoryRowTemplate")
         row.text = _G[rowName.."Text"]
         row.hitBox = _G[rowName.."HitBox"]
+        -- 应用自定义装备字体
+        ns.ApplyEquipmentFont(row.text)
         historyRows[index] = row
     end
     local row = historyRows[index]
@@ -359,6 +361,9 @@ local function GetManualAddRow(parent, index)
         row.itemText = _G[rowName.."Item"]
         row.detailsText = _G[rowName.."Boss"] -- We can use this for ilvl or type
         row.itemHitBox = _G[rowName.."ItemHitBox"]
+        -- 应用自定义装备字体
+        ns.ApplyEquipmentFont(row.itemText)
+        ns.ApplyEquipmentFont(row.detailsText)
         
         -- Override OnClick to point to our handler
         row:SetScript("OnClick", function(self)
@@ -443,12 +448,57 @@ function RLC:OnUnblockClick()
     end
 end
 
+function RLC:OnRemoveClick()
+    manualAddMode = "remove"
+    if _G["RLCManualAddFrameTitle"] then
+        _G["RLCManualAddFrameTitle"]:SetText(L["TITLE_REMOVE"] or "Remove Equipment")
+    end
+    if _G["RLCManualAddFrameSaveButton"] then
+        _G["RLCManualAddFrameSaveButton"]:SetText(L["BUTTON_REMOVE_CONFIRM"] or "Confirm Remove")
+    end
+
+    if RLCManualAddFrame:IsShown() then
+        RLCManualAddFrame:Hide()
+    else
+        RLCManualAddFrame:ClearAllPoints()
+        RLCManualAddFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        RLCManualAddFrame:Show()
+        RLC:RefreshManualAddList()
+    end
+end
+
 function RLC:RefreshManualAddList()
     manualAddData = {}
     selectedManualItems = {}
     print("[RLC Debug] RefreshManualAddList started, mode=" .. manualAddMode)
 
-    if manualAddMode == "unblock" then
+    if manualAddMode == "remove" then
+        -- Collect all UNASSIGN items across all bosses for physical removal
+        if RaidLootCounterDB.lootedBosses then
+            for guid, bossData in pairs(RaidLootCounterDB.lootedBosses) do
+                if type(bossData) == "table" and bossData.loot then
+                    for lootIndex, itemData in ipairs(bossData.loot) do
+                        if type(itemData) == "table" then
+                            local lootItem = ns.LootUtil.NormalizeLootItem(bossData.loot, lootIndex)
+                            -- Only UNASSIGN items (no holder) are removable
+                            if lootItem and lootItem.link and not lootItem.holder then
+                                local _, _, quality, iLevel = GetItemInfo(lootItem.link)
+                                table.insert(manualAddData, {
+                                    link = lootItem.link,
+                                    quality = quality or 4,
+                                    iLevel = iLevel or 0,
+                                    isBOE = lootItem.isBOE,
+                                    bossGUID = guid,
+                                    lootIndex = lootIndex
+                                })
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        print("[RLC Debug] Remove scan complete, found " .. #manualAddData .. " unassigned items")
+    elseif manualAddMode == "unblock" then
         -- Show currently blocked items from DB
         if RaidLootCounterDB.blockedItems then
             for itemID, itemLink in pairs(RaidLootCounterDB.blockedItems) do
@@ -633,6 +683,31 @@ function RLC:OnManualAddSaveClick()
         return
     end
 
+    if manualAddMode == "remove" then
+        -- Second confirmation: physical removal is irreversible (only manual re-add possible)
+        -- Route selected items through global RLC so the confirm frame (other file) can access them
+        RLC.pendingRemovalItems = {}
+        for _, item in ipairs(selectedManualItems) do
+            table.insert(RLC.pendingRemovalItems, item)
+        end
+        -- Open the custom confirm frame with an equipment list area
+        if _G["RLCRemoveConfirmFrameTitle"] then
+            _G["RLCRemoveConfirmFrameTitle"]:SetText(L["TITLE_REMOVE_CONFIRM"] or "Confirm Remove")
+        end
+        if _G["RLCRemoveConfirmFrameConfirmButton"] then
+            _G["RLCRemoveConfirmFrameConfirmButton"]:SetText(L["CONFIRM_REMOVE"] or "Confirm Remove")
+        end
+        if _G["RLCRemoveConfirmFrameCancelButton"] then
+            _G["RLCRemoveConfirmFrameCancelButton"]:SetText(L["CANCEL"] or "Cancel")
+        end
+        if RLCRemoveConfirmFrame then
+            RLCRemoveConfirmFrame:ClearAllPoints()
+            RLCRemoveConfirmFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+            RLCRemoveConfirmFrame:Show()
+        end
+        return
+    end
+
     if manualAddMode == "unblock" then
         -- Unblock mode: remove selected items from blockedItems
         local unblockedCount = 0
@@ -739,4 +814,105 @@ function RLC:OnManualAddSaveClick()
     end
 
     RLCManualAddFrame:Hide()
+end
+
+-- ============================================================================
+-- 移除装备二次确认弹窗（装备列表区域）
+-- ============================================================================
+local removeConfirmRows = {}
+local function GetRemoveConfirmRow(parent, index)
+    if not removeConfirmRows[index] then
+        local rowName = "RLC_RemoveConfirmRow_" .. index
+        local row = CreateFrame("Button", rowName, parent, "RLC_LootHistoryRowTemplate")
+        row.text = _G[rowName.."Text"]
+        row.hitBox = _G[rowName.."HitBox"]
+        -- 应用自定义装备字体
+        ns.ApplyEquipmentFont(row.text)
+        removeConfirmRows[index] = row
+    end
+    local row = removeConfirmRows[index]
+    row:SetParent(parent)
+    row:ClearAllPoints()
+    row:Show()
+    return row
+end
+
+function RLC:UpdateRemoveConfirmScroll()
+    if not RLCRemoveConfirmFrame or not RLCRemoveConfirmFrame:IsShown() then return end
+    local scrollFrame = _G["RLCRemoveConfirmScrollFrame"]
+    if not scrollFrame then return end
+    local items = RLC.pendingRemovalItems or {}
+    local numItems = #items
+    local rowHeight = ns.CONSTANTS.UI.HISTORY_ROW_HEIGHT
+    -- 弹窗 600x400：滚动区高度约 290px，行高16 → 每页约18行
+    local visibleRows = math.floor(290 / rowHeight)
+
+    FauxScrollFrame_Update(scrollFrame, numItems, visibleRows, rowHeight)
+    local offset = FauxScrollFrame_GetOffset(scrollFrame)
+
+    for i = 1, visibleRows do
+        local index = offset + i
+        local row = GetRemoveConfirmRow(RLCRemoveConfirmFrame, i)
+        if index <= numItems then
+            local item = items[index]
+            local displayText = item and item.link or ""
+            row.text:SetText(displayText)
+            -- Position rows below the title, matching the scroll area
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, -((i-1)*rowHeight))
+            row:Show()
+        else
+            row:Hide()
+        end
+    end
+end
+
+function RLC:OnRemoveConfirmAccept()
+    local removedCount = 0
+    -- Group removal indices by bossGUID so we can remove descending (avoid index shifting)
+    local toRemove = {} -- bossGUID -> { [lootIndex]=true }
+    for _, item in ipairs(RLC.pendingRemovalItems or {}) do
+        if item and item.bossGUID and item.lootIndex then
+            toRemove[item.bossGUID] = toRemove[item.bossGUID] or {}
+            toRemove[item.bossGUID][item.lootIndex] = true
+        end
+    end
+    RLC.pendingRemovalItems = nil
+
+    for guid, indices in pairs(toRemove) do
+        local bossData = RaidLootCounterDB.lootedBosses and RaidLootCounterDB.lootedBosses[guid]
+        if bossData and bossData.loot then
+            -- Sort indices descending so table.remove doesn't shift earlier entries
+            local sorted = {}
+            for idx in pairs(indices) do table.insert(sorted, idx) end
+            table.sort(sorted, function(a, b) return a > b end)
+            for _, idx in ipairs(sorted) do
+                if bossData.loot[idx] then
+                    table.remove(bossData.loot, idx)
+                    removedCount = removedCount + 1
+                end
+            end
+            -- Clean up boss entry if no loot remains
+            if #bossData.loot == 0 then
+                RaidLootCounterDB.lootedBosses[guid] = nil
+            end
+        end
+    end
+
+    print(ns.CONSTANTS.CHAT_PREFIX .. string.format(L["MSG_REMOVE_SUCCESS"] or "Removed %d items.", removedCount))
+
+    -- Close the confirm dialog and refresh everything
+    if RLCRemoveConfirmFrame then RLCRemoveConfirmFrame:Hide() end
+    -- Also close the "移除装备" (RLCManualAddFrame) layer
+    if RLCManualAddFrame then RLCManualAddFrame:Hide() end
+    if RaidLootCounterLootHistoryFrame and RaidLootCounterLootHistoryFrame:IsShown() then
+        RLC:RefreshLootHistory()
+    end
+    RLC:RefreshDisplay()
+end
+
+function RLC:OnRemoveConfirmCancel()
+    -- Cancel: close the confirm dialog, no operation performed
+    RLC.pendingRemovalItems = nil
+    if RLCRemoveConfirmFrame then RLCRemoveConfirmFrame:Hide() end
 end

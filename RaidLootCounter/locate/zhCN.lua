@@ -90,6 +90,14 @@ local zhCN = {
     ["BUTTON_UNBLOCK"] = "解除屏蔽",
     ["TITLE_UNBLOCK"] = "屏蔽列表",
     ["MSG_UNBLOCK_SUCCESS"] = "已解除 %d 件装备的屏蔽。",
+    ["BUTTON_REMOVE"] = "移除装备",
+    ["TITLE_REMOVE"] = "移除装备",
+    ["TITLE_REMOVE_CONFIRM"] = "确认移除装备",
+    ["BUTTON_REMOVE_CONFIRM"] = "确认移除",
+    ["CONFIRM_REMOVE_TEXT"] = "确定移除选中的装备？移除后无法恢复，只能手动重新添加。",
+    ["CONFIRM_REMOVE_LIST"] = "选中的装备：",
+    ["CONFIRM_REMOVE"] = "确认移除",
+    ["MSG_REMOVE_SUCCESS"] = "已移除 %d 件装备。",
     ["MSG_NO_ITEM_SELECTED"] = "请先选择一件装备。",
 
     -- Errors / Info
